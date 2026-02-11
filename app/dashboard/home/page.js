@@ -92,7 +92,7 @@ export default function DashboardHome() {
 
     // Countdown timer
     useEffect(() => {
-        if (!revealStatus || revealStatus.is_revealed) return;
+        if (!revealStatus || revealStatus.is_revealed || trollStep > 0) return;
 
         const interval = setInterval(() => {
             const now = new Date();
