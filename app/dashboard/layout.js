@@ -12,6 +12,7 @@ export default function DashboardLayout({ children }) {
     const router = useRouter();
     const pathname = usePathname();
     const [user, setUser] = useState(null);
+    const [revealStatus, setRevealStatus] = useState(null);
     const [loading, setLoading] = useState(true);
 
 
@@ -27,6 +28,11 @@ export default function DashboardLayout({ children }) {
             }
 
             setUser(session.user);
+
+            // Sync reveal status
+            const { data: status } = await supabase.rpc('get_reveal_status');
+            setRevealStatus(status);
+
             setLoading(false);
         };
 
@@ -52,7 +58,7 @@ export default function DashboardLayout({ children }) {
 
     const navItems = [
         { href: "/dashboard/home", icon: HomeIcon, label: "Home" },
-        { href: "/dashboard/select", icon: Search, label: "Choose Valentine" },
+        ...(!revealStatus?.is_revealed ? [{ href: "/dashboard/select", icon: Search, label: "Choose Valentine" }] : []),
         { href: "/dashboard/profile", icon: User, label: "Profile" },
     ];
 
@@ -69,11 +75,11 @@ export default function DashboardLayout({ children }) {
     return (
         <div className="min-h-screen flex flex-col">
             {/* Desktop Top Nav — hidden on mobile */}
-            <nav className="hidden sm:block sticky top-0 z-50 glass-card rounded-none border-x-0 border-t-0 px-8 py-3">
+            <nav className="hidden sm:block sticky top-0 z-50 glass-card rounded-none border-x-0 border-t-0 px-6 py-2">
                 <div className="max-w-6xl mx-auto flex items-center justify-between">
                     <Link href="/dashboard/select" className="flex items-center gap-2 group">
-                        <Heart className="w-6 h-6 text-pink-400 fill-pink-400 group-hover:scale-110 transition-transform" />
-                        <span className="gradient-text font-bold text-lg">Between Us</span>
+                        <Heart className="w-5 h-5 text-pink-400 fill-pink-400 group-hover:scale-110 transition-transform" />
+                        <span className="gradient-text font-bold text-base">Between Us</span>
                     </Link>
 
                     <div className="flex items-center gap-2">
@@ -82,7 +88,7 @@ export default function DashboardLayout({ children }) {
                             return (
                                 <Link key={item.href} href={item.href}>
                                     <button
-                                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200
+                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-200
                                             ${isActive
                                                 ? "bg-pink-500/15 text-pink-400 shadow-lg shadow-pink-500/10"
                                                 : "text-[var(--color-text-secondary)] hover:text-pink-400 hover:bg-pink-500/5"
@@ -99,7 +105,7 @@ export default function DashboardLayout({ children }) {
 
                         <button
                             onClick={handleLogout}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-[var(--color-text-secondary)] hover:text-rose-400 hover:bg-rose-500/5 transition-all duration-200"
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs text-[var(--color-text-secondary)] hover:text-rose-400 hover:bg-rose-500/5 transition-all duration-200"
                         >
                             <LogOut className="w-4 h-4" />
                             <span>Logout</span>
@@ -114,9 +120,9 @@ export default function DashboardLayout({ children }) {
             </main>
 
             {/* Mobile Bottom Nav — visible only on mobile */}
-            <nav className="sm:hidden fixed bottom-4 left-4 right-4 z-50 px-3 py-3 bg-[var(--color-bg-card)] backdrop-blur-xl border-2 border-pink-500/50"
+            <nav className="sm:hidden fixed bottom-4 left-4 right-4 z-50 px-2 py-2 bg-[var(--color-bg-card)] backdrop-blur-xl border-2 border-pink-500/50"
                 style={{
-                    borderRadius: '1.5rem',
+                    borderRadius: '1.25rem',
                     boxShadow: '0 -4px 30px rgba(0,0,0,0.5), 0 0 40px rgba(244, 114, 182, 0.12), 0 0 20px rgba(236, 72, 153, 0.6), 0 0 40px rgba(236, 72, 153, 0.4)',
                     animation: 'glow-pulse 2s ease-in-out infinite'
                 }}>
@@ -127,14 +133,14 @@ export default function DashboardLayout({ children }) {
                         return (
                             <Link key={item.href} href={item.href} className="flex-1">
                                 <button
-                                    className={`flex items-center justify-center w-full py-2.5 rounded-xl transition-all duration-200
+                                    className={`flex items-center justify-center w-full py-2 rounded-xl transition-all duration-200
                                         ${isActive
                                             ? "text-pink-400"
                                             : "text-[var(--color-text-secondary)]"
                                         }`}
                                 >
-                                    <div className={`p-2.5 rounded-xl transition-all duration-200 ${isActive ? "bg-pink-500/15 shadow-lg shadow-pink-500/10" : ""}`}>
-                                        <item.icon className={`w-6 h-6 ${isActive ? "scale-110" : ""} transition-transform`} />
+                                    <div className={`p-2 rounded-xl transition-all duration-200 ${isActive ? "bg-pink-500/15 shadow-lg shadow-pink-500/10" : ""}`}>
+                                        <item.icon className={`w-5 h-5 ${isActive ? "scale-110" : ""} transition-transform`} />
                                     </div>
                                 </button>
                             </Link>
@@ -143,10 +149,10 @@ export default function DashboardLayout({ children }) {
 
                     <button
                         onClick={handleLogout}
-                        className="flex items-center justify-center flex-1 py-2.5 rounded-xl text-[var(--color-text-secondary)] transition-all duration-200"
+                        className="flex items-center justify-center flex-1 py-2 rounded-xl text-[var(--color-text-secondary)] transition-all duration-200"
                     >
-                        <div className="p-2.5 rounded-xl">
-                            <LogOut className="w-6 h-6" />
+                        <div className="p-2 rounded-xl">
+                            <LogOut className="w-5 h-5" />
                         </div>
                     </button>
                 </div>

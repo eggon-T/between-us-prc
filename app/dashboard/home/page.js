@@ -14,6 +14,8 @@ import {
     Users,
     Eye,
     Info,
+    PartyPopper,
+    Instagram,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -21,8 +23,10 @@ export default function DashboardHome() {
     const [user, setUser] = useState(null);
     const [userName, setUserName] = useState("");
     const [selectionCount, setSelectionCount] = useState(0);
+    const [selectedMatch, setSelectedMatch] = useState(null);
     const [hints, setHints] = useState([]);
     const [revealStatus, setRevealStatus] = useState(null);
+    const [matches, setMatches] = useState([]);
     const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
     const [loading, setLoading] = useState(true);
 
@@ -53,6 +57,26 @@ export default function DashboardHome() {
             // Fetch anonymous hints
             const { data: myHints } = await supabase.rpc('get_my_hints');
             setHints(myHints || []);
+
+            // If revealed, fetch mutual matches
+            if (status?.is_revealed) {
+                const { data: myMatches } = await supabase
+                    .from("matches")
+                    .select("user1, user2")
+                    .or(`user1.eq.${authUser.id},user2.eq.${authUser.id}`);
+
+                const partnerIds = (myMatches || []).map((m) =>
+                    m.user1 === authUser.id ? m.user2 : m.user1
+                );
+
+                if (partnerIds.length > 0) {
+                    const { data: matchProfiles } = await supabase
+                        .from("users")
+                        .select("*")
+                        .in("id", partnerIds);
+                    setMatches(matchProfiles || []);
+                }
+            }
 
         } catch (err) {
             console.error("Error loading data:", err);
@@ -112,8 +136,51 @@ export default function DashboardHome() {
                 </p>
             </div>
 
-            {/* Countdown Card */}
-            {!revealStatus?.is_revealed && (
+            {/* Countdown or Matches Card */}
+            {revealStatus?.is_revealed ? (
+                <div className="glass-card p-6">
+                    <div className="flex items-center gap-2 mb-6 justify-center">
+                        <PartyPopper className="w-6 h-6 text-pink-400" />
+                        <h2 className="font-bold text-xl gradient-text">It&apos;s a Match! 🎉</h2>
+                    </div>
+
+                    {matches.length === 0 ? (
+                        <div className="text-center py-6">
+                            <Heart className="w-12 h-12 text-[var(--color-text-secondary)] opacity-20 mx-auto mb-3" />
+                            <p className="text-[var(--color-text-secondary)]">No matches this time, but love is always around! ✨</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4 mb-2">
+                            {matches.map((match, i) => (
+                                <div
+                                    key={match.id}
+                                    onClick={() => setSelectedMatch(match)}
+                                    className="flex items-center gap-4 p-4 rounded-2xl bg-pink-500/5 border border-pink-500/10 cursor-pointer hover:bg-pink-500/10 transition-all hover:scale-[1.02]"
+                                    style={{ animation: `slide-up 0.5s ease-out ${0.1 * i}s both` }}
+                                >
+                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500/20 to-violet-500/20 border-2 border-pink-400/30 flex items-center justify-center font-bold text-lg text-pink-400">
+                                        {match.full_name?.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="font-bold text-sm truncate">{match.full_name}</h3>
+                                        <p className="text-xs text-[var(--color-text-secondary)] truncate">{match.department}</p>
+                                    </div>
+                                    {match.instagram_url && (
+                                        <a
+                                            href={match.instagram_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-pink-500/20 transition-colors"
+                                        >
+                                            <Instagram className="w-4 h-4 text-pink-400" />
+                                        </a>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            ) : (
                 <div className="glass-card p-6 sm:p-8">
                     <div className="flex items-center gap-2 mb-4 justify-center">
                         <Clock className="w-5 h-5 text-pink-400" />
@@ -146,28 +213,30 @@ export default function DashboardHome() {
                 </div>
             )}
 
-            {/* Valentine Status Card */}
-            <div className="glass-card p-6">
-                <div className="flex items-center gap-2 mb-4">
-                    <Heart className="w-5 h-5 text-pink-400 fill-pink-400" />
-                    <h2 className="font-bold text-lg">Valentine Status</h2>
+            {/* Valentine Status Card - Hidden after reveal */}
+            {!revealStatus?.is_revealed && (
+                <div className="glass-card p-6">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Heart className="w-5 h-5 text-pink-400 fill-pink-400" />
+                        <h2 className="font-bold text-lg">Valentine Status</h2>
+                    </div>
+
+                    <p className="text-[var(--color-text-secondary)] text-sm mb-4">
+                        {selectionCount === 0
+                            ? "You haven't chosen your Valentines yet. Don't miss your chance!"
+                            : selectionCount === 5
+                                ? "You've selected all 5 people! Good luck! 🍀"
+                                : `You've selected ${selectionCount} out of 5 people. Keep going!`}
+                    </p>
+
+                    <Link href="/dashboard/select">
+                        <button className="btn-gradient w-full py-3 flex items-center justify-center gap-2">
+                            Choose Your Valentines
+                            <ArrowRight className="w-4 h-4" />
+                        </button>
+                    </Link>
                 </div>
-
-                <p className="text-[var(--color-text-secondary)] text-sm mb-4">
-                    {selectionCount === 0
-                        ? "You haven't chosen your Valentines yet. Don't miss your chance!"
-                        : selectionCount === 5
-                            ? "You've selected all 5 people! Good luck! 🍀"
-                            : `You've selected ${selectionCount} out of 5 people. Keep going!`}
-                </p>
-
-                <Link href="/dashboard/select">
-                    <button className="btn-gradient w-full py-3 flex items-center justify-center gap-2">
-                        Choose Your Valentines
-                        <ArrowRight className="w-4 h-4" />
-                    </button>
-                </Link>
-            </div>
+            )}
 
             {/* Anonymous Hints Section */}
             <div className="glass-card p-6">
@@ -248,6 +317,52 @@ export default function DashboardHome() {
                     ))}
                 </div>
             </div>
+
+            {/* Match Detail Modal */}
+            {selectedMatch && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 animate-[fade-in_0.2s_ease-out]">
+                    <div
+                        className="absolute inset-0 bg-[var(--color-bg-dark)]/80 backdrop-blur-sm"
+                        onClick={() => setSelectedMatch(null)}
+                    />
+                    <div className="relative w-full max-w-sm glass-card p-8 animate-[slide-up_0.3s_ease-out] border-pink-500/30">
+                        <button
+                            onClick={() => setSelectedMatch(null)}
+                            className="absolute top-4 right-4 text-[var(--color-text-secondary)] hover:text-pink-400 transition-colors"
+                        >
+                            <span className="text-2xl">&times;</span>
+                        </button>
+
+                        <div className="text-center">
+                            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-pink-500/20 to-violet-500/20 border-2 border-pink-400/30 flex items-center justify-center mx-auto mb-4 font-bold text-4xl text-pink-400 shadow-lg shadow-pink-500/10">
+                                {selectedMatch.full_name?.charAt(0).toUpperCase()}
+                            </div>
+                            <h2 className="text-2xl font-bold mb-2">{selectedMatch.full_name}</h2>
+                            <div className="flex flex-col gap-2 mb-6">
+                                <div className="flex items-center justify-center gap-2 text-[var(--color-text-secondary)]">
+                                    <Sparkles className="w-4 h-4 text-violet-400" />
+                                    <span>{selectedMatch.department}</span>
+                                </div>
+                                <div className="text-xs text-pink-400 font-medium">
+                                    {selectedMatch.year}
+                                </div>
+                            </div>
+
+                            {selectedMatch.instagram_url && (
+                                <a
+                                    href={selectedMatch.instagram_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="btn-gradient w-full py-3 text-sm flex items-center justify-center gap-2"
+                                >
+                                    <Instagram className="w-4 h-4" />
+                                    Visit Instagram Profile
+                                </a>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
