@@ -50,7 +50,7 @@ const parseStudentEmail = (email) => {
     else {
       yearCode = studentInfo.substring(2, 4);
       const deptMatch = studentInfo.substring(0, 2);
-      deptCode = deptMatch ? deptMatch[0].toLowerCase() : "";
+      deptCode = deptMatch ? deptMatch.toLowerCase() : "";
     }
     const depts = {
       cs: "Computer Science",
