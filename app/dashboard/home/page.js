@@ -336,7 +336,7 @@ export default function DashboardHome() {
                         {
                             icon: <Clock className="w-6 h-6 text-violet-400" />,
                             title: "Deadline",
-                            desc: "You can change your choices until Feb 14, 1:00 AM.",
+                            desc: "You can change your choices until Feb 14, 12:00 AM.",
                         },
                         {
                             icon: <Shield className="w-6 h-6 text-rose-400" />,
