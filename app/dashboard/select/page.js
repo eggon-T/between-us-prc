@@ -44,12 +44,28 @@ export default function SelectPage() {
             if (!user) return;
             setCurrentUser(user);
 
-            // Get all users except current
-            const { data: allUsers, error: usersError } = await supabase
+            // Get current user's profile to know their gender
+            const { data: profile } = await supabase
+                .from("users")
+                .select("gender")
+                .eq("id", user.id)
+                .single();
+
+            const userGender = profile?.gender;
+            const targetGender = userGender === "Male" ? "Female" : userGender === "Female" ? "Male" : null;
+
+            // Get users of the opposite gender
+            let query = supabase
                 .from("users")
                 .select("*")
                 .neq("id", user.id)
                 .order("full_name");
+
+            if (targetGender) {
+                query = query.eq("gender", targetGender);
+            }
+
+            const { data: allUsers, error: usersError } = await query;
 
             if (usersError) throw usersError;
             setUsers(allUsers || []);
@@ -284,6 +300,12 @@ export default function SelectPage() {
                                                     {person.year}
                                                 </span>
                                             )}
+                                            {person.gender && (
+                                                <span className="flex items-center gap-1 text-pink-400">
+                                                    <User className="w-3 h-3" />
+                                                    {person.gender}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -356,6 +378,12 @@ export default function SelectPage() {
                                     <span className="flex items-center gap-1">
                                         <GraduationCap className="w-4 h-4" />
                                         {selectedProfile.year}
+                                    </span>
+                                )}
+                                {selectedProfile.gender && (
+                                    <span className="flex items-center gap-1 text-pink-400">
+                                        <User className="w-4 h-4" />
+                                        {selectedProfile.gender}
                                     </span>
                                 )}
                             </div>
