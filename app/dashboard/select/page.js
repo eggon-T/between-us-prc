@@ -3,6 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import {
     Search,
@@ -22,6 +23,7 @@ import {
 const MAX_SELECTIONS = 5;
 
 export default function SelectPage() {
+    const router = useRouter();
     const [currentUser, setCurrentUser] = useState(null);
     const [users, setUsers] = useState([]);
     const [selections, setSelections] = useState([]);
@@ -51,6 +53,13 @@ export default function SelectPage() {
 
             if (usersError) throw usersError;
             setUsers(allUsers || []);
+
+            // Check reveal status
+            const { data: status } = await supabase.rpc('get_reveal_status');
+            if (status?.is_revealed) {
+                router.replace("/dashboard/home");
+                return;
+            }
 
             // Get current user's CHOSEN people (from likes + matches) via RPC
             const { data: mySelections, error: selectionError } = await supabase

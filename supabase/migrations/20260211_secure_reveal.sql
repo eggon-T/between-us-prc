@@ -5,8 +5,8 @@
 CREATE OR REPLACE FUNCTION get_reveal_status()
 RETURNS jsonb AS $$
 DECLARE
-  -- DEADLINE: Feb 14, 2026 01:00:00 IST = Feb 13, 2026 19:30:00 UTC
-  deadline TIMESTAMPTZ := '2026-02-13 19:30:00+00';
+  -- DEADLINE: Feb 14, 2026 00:00:00 IST = Feb 13, 2026 18:30:00 UTC
+  deadline TIMESTAMPTZ := '2026-02-13 18:30:00+00';
   now_time TIMESTAMPTZ := NOW();
   is_revealed BOOLEAN;
 BEGIN
@@ -29,6 +29,7 @@ ALTER TABLE public.matches ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can view their own matches" ON public.matches;
 DROP POLICY IF EXISTS "match_view_policy" ON public.matches;
 DROP POLICY IF EXISTS "Public view" ON public.matches;
+DROP POLICY IF EXISTS "Users can view matches ONLY after deadline" ON public.matches;
 
 -- Create the STRICT policy
 -- Rules: 
@@ -40,7 +41,7 @@ FOR SELECT
 USING (
   (auth.uid() = user1 OR auth.uid() = user2)
   AND
-  (NOW() >= '2026-02-13 19:30:00+00') 
+  (NOW() >= '2026-02-13 18:30:00+00') 
 );
 
 -- Note: We don't need INSERT/UPDATE/DELETE policies for the client
