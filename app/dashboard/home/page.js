@@ -29,6 +29,7 @@ export default function DashboardHome() {
     const [matches, setMatches] = useState([]);
     const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
     const [loading, setLoading] = useState(true);
+    const [trollStep, setTrollStep] = useState(0); // 0: none, 1: morattu single, 2: JK
 
     const fetchData = useCallback(async () => {
         try {
@@ -37,28 +38,21 @@ export default function DashboardHome() {
 
             setUser(authUser);
 
-            // Fetch user profile
-            const { data: profile } = await supabase
-                .from("users")
-                .select("full_name")
-                .eq("id", authUser.id)
-                .single();
+            // Fetch all data in parallel or sequence before updating state
+            const [
+                { data: profile },
+                { data: status },
+                { data: selections },
+                { data: myHints }
+            ] = await Promise.all([
+                supabase.from("users").select("full_name").eq("id", authUser.id).single(),
+                supabase.rpc('get_reveal_status'),
+                supabase.rpc('get_my_selections'),
+                supabase.rpc('get_my_hints')
+            ]);
 
-            setUserName(profile?.full_name || "Friend");
-
-            // Fetch reveal status
-            const { data: status } = await supabase.rpc('get_reveal_status');
-            setRevealStatus(status);
-
-            // Fetch selection count
-            const { data: selections } = await supabase.rpc('get_my_selections');
-            setSelectionCount(selections?.length || 0);
-
-            // Fetch anonymous hints
-            const { data: myHints } = await supabase.rpc('get_my_hints');
-            setHints(myHints || []);
-
-            // If revealed, fetch mutual matches
+            let revealedMatches = [];
+            // If revealed, fetch mutual matches BEFORE updating state
             if (status?.is_revealed) {
                 const { data: myMatches } = await supabase
                     .from("matches")
@@ -74,9 +68,16 @@ export default function DashboardHome() {
                         .from("users")
                         .select("*")
                         .in("id", partnerIds);
-                    setMatches(matchProfiles || []);
+                    revealedMatches = matchProfiles || [];
                 }
             }
+
+            // ATOMIC UPDATE: Set all states together to avoid flicker
+            setUserName(profile?.full_name || "Friend");
+            setSelectionCount(selections?.length || 0);
+            setHints(myHints || []);
+            setMatches(revealedMatches);
+            setRevealStatus(status); // This triggers the UI flip
 
         } catch (err) {
             console.error("Error loading data:", err);
@@ -91,32 +92,47 @@ export default function DashboardHome() {
 
     // Countdown timer
     useEffect(() => {
-        if (!revealStatus) return;
+        if (!revealStatus || revealStatus.is_revealed) return;
 
-        const updateCountdown = () => {
-            const now = new Date(); // Use current time, not server_time from initial fetch
+        const interval = setInterval(() => {
+            const now = new Date();
             const deadline = new Date(revealStatus.deadline);
             const diff = deadline - now;
 
             if (diff <= 0) {
+                clearInterval(interval);
                 setCountdown({ days: 0, hours: 0, mins: 0, secs: 0 });
-                // Auto-refresh data when countdown ends
-                fetchData();
-                return;
+
+                // Humorous reveal sequence
+                const triggerReveal = async () => {
+                    setTrollStep(1); // "morattu single"
+
+                    // Fetch data in background immediately
+                    const dataPromise = fetchData();
+
+                    await new Promise(r => setTimeout(r, 1200));
+                    setTrollStep(2); // "JK"
+
+                    await Promise.all([
+                        new Promise(r => setTimeout(r, 800)),
+                        dataPromise
+                    ]);
+
+                    setTrollStep(0); // Show results
+                };
+
+                triggerReveal();
+            } else {
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const secs = Math.floor((diff % (1000 * 60)) / 1000);
+                setCountdown({ days, hours, mins, secs });
             }
+        }, 1000);
 
-            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            const secs = Math.floor((diff % (1000 * 60)) / 1000);
-
-            setCountdown({ days, hours, mins, secs });
-        };
-
-        updateCountdown();
-        const interval = setInterval(updateCountdown, 1000);
         return () => clearInterval(interval);
-    }, [revealStatus]);
+    }, [revealStatus, fetchData, trollStep]);
 
     if (loading) {
         return (
@@ -138,8 +154,22 @@ export default function DashboardHome() {
                 </p>
             </div>
 
-            {/* Countdown or Matches Card */}
-            {revealStatus?.is_revealed ? (
+            {/* Countdown or Matches or Troll Card */}
+            {trollStep > 0 ? (
+                <div className="glass-card p-12 text-center animate-[fade-in_0.3s_ease-out]">
+                    <div className="mb-6 h-16 flex items-center justify-center">
+                        <span className="text-4xl animate-bounce">
+                            {trollStep === 1 ? "😜" : "🎯"}
+                        </span>
+                    </div>
+                    <h2 className="text-2xl font-bold gradient-text min-h-[4rem] flex items-center justify-center">
+                        {trollStep === 1 ? "born to be morattu single" : "JUST KIDDING... 🫣"}
+                    </h2>
+                    <p className="text-[var(--color-text-secondary)] text-sm mt-4 opacity-50">
+                        {trollStep === 1 ? "Checking your luck..." : "Fetching the real ones! ✨"}
+                    </p>
+                </div>
+            ) : revealStatus?.is_revealed ? (
                 <div className="glass-card p-6">
                     <div className="flex items-center gap-2 mb-6 justify-center">
                         {matches.length > 0 ? (
