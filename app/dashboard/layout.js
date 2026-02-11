@@ -190,7 +190,7 @@ export default function DashboardLayout({ children }) {
                                 <div>
                                     <h3 className="font-bold text-[var(--color-text-primary)]">Select up to 5</h3>
                                     <p className="text-sm text-[var(--color-text-secondary)] mt-1">
-                                        Choose up to 5 people you like. It's completely anonymous unless you match!
+                                        Choose up to 5 people you like. It&apos;s completely anonymous unless you match!
                                     </p>
                                 </div>
                             </div>
