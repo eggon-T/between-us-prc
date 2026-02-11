@@ -41,7 +41,7 @@ const parseStudentEmail = (email) => {
         const depts = {
             cs: "Computer Science",
             ca: "Artificial Intelligence",
-            cy: "Cyber Security",
+            csot: "Cyber Security",
             me: "Mechanical Engineering",
             ec: "Electronics & Communication",
             ee: "Electrical Engineering",
@@ -87,6 +87,7 @@ export default function LoginPage() {
         department: "",
         year: "",
         instagram_url: "",
+        gender: "",
     });
 
     useEffect(() => {
@@ -113,7 +114,7 @@ export default function LoginPage() {
                     .eq("id", session.user.id)
                     .single();
 
-                if (existingUser?.instagram_url) {
+                if (existingUser?.instagram_url && existingUser?.gender) {
                     // All good, go home
                     router.replace("/dashboard/home");
                 } else {
@@ -126,6 +127,7 @@ export default function LoginPage() {
                         department: existingUser?.department || parsed?.department || "",
                         year: existingUser?.year || parsed?.year || "",
                         instagram_url: existingUser?.instagram_url || "",
+                        gender: existingUser?.gender || "",
                     });
                     setStep("profile");
                     setLoading(false);
@@ -193,6 +195,7 @@ export default function LoginPage() {
                 department: tempProfile.department,
                 year: tempProfile.year,
                 instagram_url: insta,
+                gender: tempProfile.gender,
             });
 
             if (upsertError) throw upsertError;
@@ -288,7 +291,7 @@ export default function LoginPage() {
                                 <input
                                     type="text"
                                     value={tempProfile.department}
-                                    readOnly
+                                    required
                                     className="input-field !pl-12 cursor-not-allowed bg-transparent"
                                 />
                             </div>
@@ -298,7 +301,7 @@ export default function LoginPage() {
                                 <input
                                     type="text"
                                     value={tempProfile.year}
-                                    readOnly
+                                    required
                                     className="input-field !pl-12 cursor-not-allowed bg-transparent"
                                 />
                             </div>
@@ -313,6 +316,46 @@ export default function LoginPage() {
                                     className="input-field !pl-12 border-pink-500/30 focus:border-pink-500"
                                     required
                                 />
+                            </div>
+
+                            {/* Gender Selection */}
+                            <div className="flex gap-4">
+                                <label className="flex-1 cursor-pointer" htmlFor="gender-male">
+                                    <input
+                                        type="radio"
+                                        id="gender-male"
+                                        name="gender"
+                                        value="Male"
+                                        checked={tempProfile.gender === "Male"}
+                                        onChange={(e) => setTempProfile({ ...tempProfile, gender: e.target.value })}
+                                        className="hidden"
+                                        required
+                                    />
+                                    <div className={`flex items-center justify-center p-3 rounded-xl border transition-all ${tempProfile.gender === "Male"
+                                            ? "border-pink-500 bg-pink-500/10 text-pink-400"
+                                            : "border-[var(--color-border-subtle)] bg-pink-500/5 text-[var(--color-text-secondary)]"
+                                        }`}>
+                                        Male
+                                    </div>
+                                </label>
+                                <label className="flex-1 cursor-pointer" htmlFor="gender-female">
+                                    <input
+                                        type="radio"
+                                        id="gender-female"
+                                        name="gender"
+                                        value="Female"
+                                        checked={tempProfile.gender === "Female"}
+                                        onChange={(e) => setTempProfile({ ...tempProfile, gender: e.target.value })}
+                                        className="hidden"
+                                        required
+                                    />
+                                    <div className={`flex items-center justify-center p-3 rounded-xl border transition-all ${tempProfile.gender === "Female"
+                                            ? "border-pink-500 bg-pink-500/10 text-pink-400"
+                                            : "border-[var(--color-border-subtle)] bg-pink-500/5 text-[var(--color-text-secondary)]"
+                                        }`}>
+                                        Female
+                                    </div>
+                                </label>
                             </div>
                         </div>
 

@@ -10,9 +10,10 @@ CREATE TABLE IF NOT EXISTS public.users (
   full_name TEXT,
   department TEXT,
   year TEXT,
-  instagram_url TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+   instagram_url TEXT,
+   gender TEXT,
+   created_at TIMESTAMPTZ DEFAULT NOW()
+ );
 
 -- Enable RLS on users
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;

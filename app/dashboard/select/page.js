@@ -275,6 +275,12 @@ export default function SelectPage() {
                                                     {person.year}
                                                 </span>
                                             )}
+                                            {person.gender && (
+                                                <span className="flex items-center gap-1 text-pink-400">
+                                                    <User className="w-3 h-3" />
+                                                    {person.gender}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -347,6 +353,12 @@ export default function SelectPage() {
                                     <span className="flex items-center gap-1">
                                         <GraduationCap className="w-4 h-4" />
                                         {selectedProfile.year}
+                                    </span>
+                                )}
+                                {selectedProfile.gender && (
+                                    <span className="flex items-center gap-1 text-pink-400">
+                                        <User className="w-4 h-4" />
+                                        {selectedProfile.gender}
                                     </span>
                                 )}
                             </div>
