@@ -331,12 +331,12 @@ export default function DashboardHome() {
                         {
                             icon: <Heart className="w-6 h-6 text-pink-400" />,
                             title: "Select up to 5",
-                            desc: "Choose up to 5 people you like. It&apos;s completely anonymous unless you match!",
+                            desc: "Choose up to 5 people you like. It is completely anonymous unless you match!",
                         },
                         {
                             icon: <Clock className="w-6 h-6 text-violet-400" />,
                             title: "Deadline",
-                            desc: "You can change your choices until Feb 14, 12:00 AM.",
+                            desc: "You can change your choices until Feb 14, 10:00 AM.",
                         },
                         {
                             icon: <Shield className="w-6 h-6 text-rose-400" />,
