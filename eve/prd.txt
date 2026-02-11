@@ -1,0 +1,173 @@
+Love this idea — it’s simple, fun, and privacy-focused, which is perfect for a college Valentine’s event. 💘
+Below is a **clear, structured Product Requirements Document (PRD)** you can use for development, pitching to your college, or sharing with teammates.
+
+---
+
+# 📄 Product Requirements Document (PRD)
+
+**Project Name:** Between us PRC
+**Version:** 1.0
+
+
+---
+
+## 1. Purpose
+
+Create a secure, anonymous matchmaking platform exclusively for verified college students where users can select up to five people they like. Matches are revealed only when both parties select each other, ensuring privacy and preventing awkward situations.
+
+---
+
+## 2. Goals & Objectives
+
+### Primary Goals
+
+* Enable anonymous Valentine matching for students.
+* Protect student privacy at all times.
+* Provide a fun, safe Valentine’s experience.
+
+### Success Metrics
+
+* Number of verified sign-ups.
+* Percentage of active users who submit choices.
+* Number of mutual matches.
+* Zero privacy incidents.
+
+---
+
+## 3. Target Users
+
+* Undergraduate and postgraduate students of the college.
+* Must have valid college email or student ID.
+
+---
+
+## 4. Assumptions
+
+* College will allow use of student emails or IDs.
+* Event is limited to a fixed time window (e.g., Feb 10–14).
+* Platform is web-based (mobile responsive).
+
+---
+
+## 5. User Flow
+
+1. User visits website
+2. Signs up / logs in using college verification
+3. Completes profile (name, department, year, photo optional)
+4. Searches and selects up to 5 people
+5. Submits choices
+6. Waits until Valentine’s Day
+7. Receives results (matches + hints)
+
+---
+
+## 6. Functional Requirements
+
+### 6.1 Authentication & Verification
+
+* Sign up with college email OR student ID.
+* Email OTP verification.
+* One account per student.
+
+---
+
+### 6.2 Profile Management
+
+* Name
+* Department / Course
+* Year
+* Profile picture (optional)
+* Ability to edit before submission deadline.
+
+---
+
+### 6.3 Valentine Selection
+
+* User can select **up to 5 people**.
+* Can remove or change selections before deadline.
+* Cannot see who selected them.
+
+---
+
+### 6.4 Matching Logic
+
+* If A selects B AND B selects A → Match.
+* One-sided selection → hidden permanently.
+
+---
+
+### 6.5 Anonymous Hints
+
+* If someone selects you, system may show:
+
+  * “Someone from your department likes you”
+  * “You received 1 anonymous like”
+* No identity revealed.
+
+---
+
+### 6.6 Reveal System
+
+* On Valentine’s Day:
+
+  * Show list of mutual matches.
+  * Display matched person’s name and profile.
+
+---
+
+### 6.7 Notifications
+
+* Email or in-app:
+
+  * Account verified
+  * Choices submitted
+  * New anonymous hint
+  * Match revealed
+
+---
+
+### 6.8 Data Deletion
+
+
+* Option for user to delete account anytime.
+
+---
+
+
+
+
+
+### Performance
+
+* Support at least X concurrent users.
+* Page load < 3 seconds.
+
+### Accessibility
+
+* Mobile-friendly.
+* Simple UI.
+
+---
+
+---
+
+## 8. Tech Stack (Suggested)
+
+* Frontend: React / Next.js
+* Backend: Node.js / fastapi
+* Database: supabase
+* Auth: Email OTP signin 
+
+---
+
+## 10. Risks & Mitigation
+
+| Risk              | Mitigation                        |
+| ----------------- | --------------------------------- |
+| Fake accounts     | Strict college email verification |
+| Data breach       | Encryption + minimal data storage |
+| Low participation | Campus promotion & posters        |
+| Server crash      | Cloud hosting with scaling        |
+
+---
+
