@@ -140,8 +140,17 @@ export default function DashboardHome() {
             {revealStatus?.is_revealed ? (
                 <div className="glass-card p-6">
                     <div className="flex items-center gap-2 mb-6 justify-center">
-                        <PartyPopper className="w-6 h-6 text-pink-400" />
-                        <h2 className="font-bold text-xl gradient-text">It&apos;s a Match! 🎉</h2>
+                        {matches.length > 0 ? (
+                            <>
+                                <PartyPopper className="w-6 h-6 text-pink-400" />
+                                <h2 className="font-bold text-xl gradient-text">It&apos;s a Match! 🎉</h2>
+                            </>
+                        ) : (
+                            <>
+                                <Heart className="w-6 h-6 text-pink-400" />
+                                <h2 className="font-bold text-xl gradient-text">Reveal Results</h2>
+                            </>
+                        )}
                     </div>
 
                     {matches.length === 0 ? (
