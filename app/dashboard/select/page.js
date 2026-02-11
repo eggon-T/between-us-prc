@@ -46,15 +46,18 @@ export default function SelectPage() {
             if (usersError) throw usersError;
             setUsers(allUsers || []);
 
-            // Get current user's choices
-            const { data: choices, error: choicesError } = await supabase
-                .from("choices")
-                .select("chosen_id")
-                .eq("chooser_id", user.id);
+            // Get current user's CHOSEN people (from likes + matches) via RPC
+            const { data: mySelections, error: selectionError } = await supabase
+                .rpc("get_my_selections");
 
-            if (choicesError) throw choicesError;
-            setSelections((choices || []).map((c) => c.chosen_id));
+            if (selectionError) throw selectionError;
+
+            // RPC returns array of objects { selected_user_id: UUID }
+            const selectedIds = (mySelections || []).map((s) => s.selected_user_id);
+            setSelections(selectedIds);
+
         } catch (err) {
+            console.error("Error fetching data:", err);
             setMessage({ type: "error", text: "Failed to load data" });
         } finally {
             setLoading(false);
@@ -77,16 +80,16 @@ export default function SelectPage() {
 
         setActionLoading(userId);
         try {
-            const { error } = await supabase.from("choices").insert({
-                chooser_id: currentUser.id,
-                chosen_id: userId,
-            });
+            // Call RPC to select user (handles matches/likes/hints atomically)
+            const { error } = await supabase.rpc("select_user", { target_id: userId });
 
             if (error) throw error;
+
             setSelections((prev) => [...prev, userId]);
             setMessage({ type: "success", text: "Added to your valentines! 💗" });
         } catch (err) {
-            setMessage({ type: "error", text: "Failed to select. Try again." });
+            console.error("Error selecting user:", err);
+            setMessage({ type: "error", text: err.message || "Failed to select. Try again." });
         } finally {
             setActionLoading(null);
             setTimeout(() => setMessage({ type: "", text: "" }), 2000);
@@ -96,16 +99,15 @@ export default function SelectPage() {
     const handleDeselect = async (userId) => {
         setActionLoading(userId);
         try {
-            const { error } = await supabase
-                .from("choices")
-                .delete()
-                .eq("chooser_id", currentUser.id)
-                .eq("chosen_id", userId);
+            // Call RPC to deselect user (handles unmatching/unliking atomically)
+            const { error } = await supabase.rpc("deselect_user", { target_id: userId });
 
             if (error) throw error;
+
             setSelections((prev) => prev.filter((id) => id !== userId));
             setMessage({ type: "info", text: "Removed from your list" });
         } catch (err) {
+            console.error("Error deselecting user:", err);
             setMessage({ type: "error", text: "Failed to remove. Try again." });
         } finally {
             setActionLoading(null);

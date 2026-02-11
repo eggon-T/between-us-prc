@@ -12,15 +12,13 @@ import {
     Lock,
     PartyPopper,
     MessageCircleHeart,
-    Building2,
     Instagram,
 } from "lucide-react";
 
 export default function MatchesPage() {
     const [matches, setMatches] = useState([]);
-    const [hints, setHints] = useState({ count: 0, departments: [] });
+    const [hints, setHints] = useState({ count: 0 }); // Removed departments to keep O(1)
     const [loading, setLoading] = useState(true);
-    const [revealed, setRevealed] = useState(false);
     const [error, setError] = useState("");
 
     // Valentine's Day reveal date — adjust as needed
@@ -36,56 +34,48 @@ export default function MatchesPage() {
 
             if (!user) return;
 
-            // Get people I chose
-            const { data: myChoices, error: myErr } = await supabase
-                .from("choices")
-                .select("chosen_id")
-                .eq("chooser_id", user.id);
+            // 1. Fetch Mutual Matches (Directly from 'matches' table - O(1) lookup index)
+            // We need to check both user1 and user2 columns
+            const { data: myMatches, error: matchErr } = await supabase
+                .from("matches")
+                .select("user1, user2")
+                .or(`user1.eq.${user.id},user2.eq.${user.id}`);
 
-            if (myErr) throw myErr;
+            if (matchErr) throw matchErr;
 
-            // Get people who chose me
-            const { data: theirChoices, error: theirErr } = await supabase
-                .from("choices")
-                .select("chooser_id")
-                .eq("chosen_id", user.id);
+            // Extract the OTHER user's ID from each match row
+            const partnerIds = (myMatches || []).map((m) =>
+                m.user1 === user.id ? m.user2 : m.user1
+            );
 
-            if (theirErr) throw theirErr;
-
-            const mySet = new Set((myChoices || []).map((c) => c.chosen_id));
-            const theirSet = new Set((theirChoices || []).map((c) => c.chooser_id));
-
-            // Mutual matches
-            const mutualIds = [...mySet].filter((id) => theirSet.has(id));
-
-            // Fetch match profiles
-            if (mutualIds.length > 0) {
+            // Fetch match profiles (only if matches exist)
+            if (partnerIds.length > 0) {
                 const { data: matchProfiles, error: profileErr } = await supabase
                     .from("users")
                     .select("*")
-                    .in("id", mutualIds);
+                    .in("id", partnerIds);
 
                 if (profileErr) throw profileErr;
                 setMatches(matchProfiles || []);
+            } else {
+                setMatches([]);
             }
 
-            // Hints: people who chose me (anonymous)
-            const hintCount = theirChoices?.length || 0;
+            // 2. Fetch Anonymous Hint Count (Directly from 'hint_counter' - O(1))
+            const { data: hintData, error: hintErr } = await supabase
+                .from("hint_counter")
+                .select("count")
+                .eq("user_id", user.id)
+                .single(); // zero or one row
 
-            // Gather departments of people who liked me (anonymous hint)
-            if (hintCount > 0) {
-                const likerIds = (theirChoices || []).map((c) => c.chooser_id);
-                const { data: likerProfiles } = await supabase
-                    .from("users")
-                    .select("department")
-                    .in("id", likerIds);
-
-                const depts = [
-                    ...new Set((likerProfiles || []).map((p) => p.department).filter(Boolean)),
-                ];
-                setHints({ count: hintCount, departments: depts });
+            if (hintErr && hintErr.code !== 'PGRST116') { // Ignore "no rows returned" error
+                console.error("Error fetching hints:", hintErr);
             }
+
+            setHints({ count: hintData?.count || 0 });
+
         } catch (err) {
+            console.error("Error loading matches:", err);
             setError("Failed to load matches");
         } finally {
             setLoading(false);
@@ -126,7 +116,7 @@ export default function MatchesPage() {
             )}
 
             {/* Anonymous hints section */}
-            {hints.count > 0 && (
+            {hints.count > 0 && !isRevealed && (
                 <div className="glass-card p-6 mb-8 animate-[slide-up_0.5s_ease-out]">
                     <div className="flex items-center gap-3 mb-4">
                         <div className="w-10 h-10 rounded-xl bg-violet-500/15 flex items-center justify-center">
@@ -144,23 +134,10 @@ export default function MatchesPage() {
                         <div className="flex items-center gap-3 p-3 rounded-xl bg-pink-500/5 border border-pink-500/10">
                             <Heart className="w-5 h-5 text-pink-400 fill-pink-400" />
                             <p className="text-sm">
-                                You received{" "}
-                                <span className="font-bold text-pink-400">{hints.count}</span> anonymous{" "}
-                                {hints.count === 1 ? "like" : "likes"} 💕
+                                You have <span className="font-bold text-pink-400">{hints.count}</span> anonymous{" "}
+                                {hints.count === 1 ? "admirer" : "admirers"} waiting! 💕
                             </p>
                         </div>
-
-                        {hints.departments.map((dept, i) => (
-                            <div
-                                key={i}
-                                className="flex items-center gap-3 p-3 rounded-xl bg-violet-500/5 border border-violet-500/10"
-                            >
-                                <Building2 className="w-5 h-5 text-violet-400" />
-                                <p className="text-sm">
-                                    Someone from <span className="font-bold text-violet-400">{dept}</span> likes you
-                                </p>
-                            </div>
-                        ))}
                     </div>
                 </div>
             )}
@@ -184,14 +161,11 @@ export default function MatchesPage() {
                     {/* Countdown teaser */}
                     <div className="mt-8 flex items-center justify-center gap-2 text-sm text-[var(--color-text-secondary)]">
                         <Sparkles className="w-4 h-4 text-pink-400" />
-                        {matches.length > 0 ? (
-                            <span>
-                                You have <span className="text-pink-400 font-bold">{matches.length}</span> mutual{" "}
-                                {matches.length === 1 ? "match" : "matches"} waiting!
-                            </span>
-                        ) : (
-                            <span>Select people you like and hope for a match!</span>
-                        )}
+                        <span>
+                            {matches.length > 0
+                                ? `You have ${matches.length} mutual ${matches.length === 1 ? "match" : "matches"}!`
+                                : "Select people you like and hope for a match!"}
+                        </span>
                     </div>
                 </div>
             ) : matches.length === 0 ? (
