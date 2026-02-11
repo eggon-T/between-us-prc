@@ -44,7 +44,7 @@ const parseStudentEmail = (email) => {
     ) {
       yearCode = studentInfo.substring(3, 5);
       const deptMatch = studentInfo.substring(5).match(/^[a-zA-Z]+/);
-      deptCode = deptMatch ? deptMatch[0].toLowerCase() : "";
+      deptCode = deptMatch ? deptMatch.toLowerCase() : "";
     }
     //newone cs2203
     else {
