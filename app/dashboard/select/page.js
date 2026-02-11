@@ -42,12 +42,28 @@ export default function SelectPage() {
             if (!user) return;
             setCurrentUser(user);
 
-            // Get all users except current
-            const { data: allUsers, error: usersError } = await supabase
+            // Get current user's profile to know their gender
+            const { data: profile } = await supabase
+                .from("users")
+                .select("gender")
+                .eq("id", user.id)
+                .single();
+
+            const userGender = profile?.gender;
+            const targetGender = userGender === "Male" ? "Female" : userGender === "Female" ? "Male" : null;
+
+            // Get users of the opposite gender
+            let query = supabase
                 .from("users")
                 .select("*")
                 .neq("id", user.id)
                 .order("full_name");
+
+            if (targetGender) {
+                query = query.eq("gender", targetGender);
+            }
+
+            const { data: allUsers, error: usersError } = await query;
 
             if (usersError) throw usersError;
             setUsers(allUsers || []);
