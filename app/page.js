@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { Heart, Sparkles, ArrowRight, Shield, Users, Eye } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation"; // Added useRouter
+import { supabase } from "@/lib/supabase"; // Added supabase import
 
 function FloatingParticle({ delay, x, size }) {
     return (
@@ -23,10 +25,24 @@ function FloatingParticle({ delay, x, size }) {
 
 export default function HomePage() {
     const [mounted, setMounted] = useState(false);
+    const searchParams = useSearchParams();
+    const router = useRouter(); // Initialize router
+    const error = searchParams.get("error");
+    const errorDescription = searchParams.get("error_description");
 
     useEffect(() => {
         setMounted(true);
-    }, []);
+
+        // Check for existing session and redirect if logged in
+        const checkSession = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                router.replace("/login");
+            }
+        };
+        checkSession();
+
+    }, [router]);
 
     return (
         <main className="min-h-screen flex flex-col">
@@ -51,6 +67,13 @@ export default function HomePage() {
                     className={`text-center max-w-2xl mx-auto transition-all duration-700 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
                         }`}
                 >
+                    {error && (
+                        <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm text-center">
+                            <p className="font-bold">Login Error: {error}</p>
+                            <p>{errorDescription}</p>
+                            <p className="text-xs mt-2 opacity-50">Please check your URL Configuration in Supabase.</p>
+                        </div>
+                    )}
                     {/* Animated heart */}
                     <div className="mb-6 inline-flex items-center justify-center">
                         <div style={{ animation: "heart-beat 1.2s ease-in-out infinite" }}>

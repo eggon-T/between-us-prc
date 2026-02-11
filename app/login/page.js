@@ -21,71 +21,71 @@ const ALLOWED_DOMAIN = "@student.providence.edu.in";
 const parseStudentEmail = (email) => {
     console.log("Parsing email:", email);
     try {
-    const localPart = email.split("@")[0];
-    const [namePart, studentInfo] = localPart.split(".");
+        const localPart = email.split("@")[0];
+        const [namePart, studentInfo] = localPart.split(".");
 
-    if (!namePart || !studentInfo) {
-      console.error("Invalid email format for parsing");
-      return null;
-    }
+        if (!namePart || !studentInfo) {
+            console.error("Invalid email format for parsing");
+            return null;
+        }
 
-    const name = namePart
-      .trim() // Remove leading/trailing whitespace
-      .split(/\s+/) // Split by one OR more spaces
-      .map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
-      .join(" ");
-    //if starts with num
-    let yearCode;
-    let deptCode;
-    //prc22cs03 -> 22cs03
-    if (
-      studentInfo.substring(0, 3) == "prc" ||
-      studentInfo.substring(0, 3) == "PRC"
-    ) {
-      yearCode = studentInfo.substring(3, 5);
-      const deptMatch = studentInfo.substring(5).match(/^[a-zA-Z]+/);
-      deptCode = deptMatch ? deptMatch[0].toLowerCase() : "";
-    }
-    //newone cs2203
-    //new
-    else {
-      yearCode = studentInfo.substring(2, 4);
-      const deptMatch = studentInfo.substring(0, 2);
-      deptCode = deptMatch ? deptMatch.toLowerCase() : "";
-    }
-    const depts = {
-      cs: "Computer Science",
-      ca: "Artificial Intelligence",
-      ai: "Artificial Intelligence",
-      csot: "Cyber Security",
-      cy: "Cyber Security",
-      bb: "BBA",
-      bba: "BBA",
-      ba: "BBA",
-      me: "Mechanical Engineering",
-      ec: "Electronics & Communication",
-      ee: "Electrical Engineering",
-      ce: "Civil Engineering",
-      mba: "MBA",
-      mb: "MBA",
-    };
+        const name = namePart
+            .trim() // Remove leading/trailing whitespace
+            .split(/\s+/) // Split by one OR more spaces
+            .map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
+            .join(" ");
+        //if starts with num
+        let yearCode;
+        let deptCode;
+        //prc22cs03 -> 22cs03
+        if (
+            studentInfo.substring(0, 3) == "prc" ||
+            studentInfo.substring(0, 3) == "PRC"
+        ) {
+            yearCode = studentInfo.substring(3, 5);
+            const deptMatch = studentInfo.substring(5).match(/^[a-zA-Z]+/);
+            deptCode = deptMatch ? deptMatch[0].toLowerCase() : "";
+        }
+        //newone cs2203
+        //new
+        else {
+            yearCode = studentInfo.substring(2, 4);
+            const deptMatch = studentInfo.substring(0, 2);
+            deptCode = deptMatch ? deptMatch.toLowerCase() : "";
+        }
+        const depts = {
+            cs: "Computer Science",
+            ca: "Artificial Intelligence",
+            ai: "Artificial Intelligence",
+            csot: "Cyber Security",
+            cy: "Cyber Security",
+            bb: "BBA",
+            bba: "BBA",
+            ba: "BBA",
+            me: "Mechanical Engineering",
+            ec: "Electronics & Communication",
+            ee: "Electrical Engineering",
+            ce: "Civil Engineering",
+            mba: "MBA",
+            mb: "MBA",
+        };
 
-    const years = {
-      22: "4th Year",
-      23: "3rd Year",
-      24: "2nd Year",
-      25: "1st Year",
-    };
+        const years = {
+            22: "4th Year",
+            23: "3rd Year",
+            24: "2nd Year",
+            25: "1st Year",
+        };
 
-    let yearText = "";
-    yearText = years[yearCode];
+        let yearText = "";
+        yearText = years[yearCode];
 
-    return {
-      full_name: name,
-      department: depts[deptCode] || deptCode.toUpperCase(),
-      year: yearText,
-    };
-  } catch (e) {
+        return {
+            full_name: name,
+            department: depts[deptCode] || deptCode.toUpperCase(),
+            year: yearText,
+        };
+    } catch (e) {
         console.error("Parse error:", e);
         return null;
     }
@@ -189,7 +189,8 @@ export default function LoginPage() {
             });
             if (authError) throw authError;
         } catch (err) {
-            setError(err.message || "Failed to sign in. Try again.");
+            console.error("Auth error:", err);
+            setError(`Error: ${err.message}. Origin: ${window.location.origin}`);
             setLoading(false);
         }
     };
@@ -215,7 +216,15 @@ export default function LoginPage() {
                 gender: tempProfile.gender,
             });
 
-            if (upsertError) throw upsertError;
+            if (upsertError) {
+                // Handle stale session (User deleted in Auth but session persists)
+                if (upsertError.code === "23503") { // foreign_key_violation
+                    await supabase.auth.signOut();
+                    window.location.reload();
+                    return;
+                }
+                throw upsertError;
+            }
             router.push("/dashboard/home");
         } catch (err) {
             setError(err.message || "Failed to save profile");
@@ -308,6 +317,7 @@ export default function LoginPage() {
                                 <input
                                     type="text"
                                     value={tempProfile.department}
+                                    readOnly
                                     required
                                     className="input-field !pl-12 cursor-not-allowed bg-transparent"
                                 />
@@ -318,6 +328,7 @@ export default function LoginPage() {
                                 <input
                                     type="text"
                                     value={tempProfile.year}
+                                    readOnly
                                     required
                                     className="input-field !pl-12 cursor-not-allowed bg-transparent"
                                 />
@@ -349,8 +360,8 @@ export default function LoginPage() {
                                         required
                                     />
                                     <div className={`flex items-center justify-center p-3 rounded-xl border transition-all ${tempProfile.gender === "Male"
-                                            ? "border-pink-500 bg-pink-500/10 text-pink-400"
-                                            : "border-[var(--color-border-subtle)] bg-pink-500/5 text-[var(--color-text-secondary)]"
+                                        ? "border-pink-500 bg-pink-500/10 text-pink-400"
+                                        : "border-[var(--color-border-subtle)] bg-pink-500/5 text-[var(--color-text-secondary)]"
                                         }`}>
                                         Male
                                     </div>
@@ -367,8 +378,8 @@ export default function LoginPage() {
                                         required
                                     />
                                     <div className={`flex items-center justify-center p-3 rounded-xl border transition-all ${tempProfile.gender === "Female"
-                                            ? "border-pink-500 bg-pink-500/10 text-pink-400"
-                                            : "border-[var(--color-border-subtle)] bg-pink-500/5 text-[var(--color-text-secondary)]"
+                                        ? "border-pink-500 bg-pink-500/10 text-pink-400"
+                                        : "border-[var(--color-border-subtle)] bg-pink-500/5 text-[var(--color-text-secondary)]"
                                         }`}>
                                         Female
                                     </div>

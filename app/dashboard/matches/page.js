@@ -20,11 +20,7 @@ export default function MatchesPage() {
     const [hints, setHints] = useState({ count: 0 }); // Removed departments to keep O(1)
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-
-    // Valentine's Day reveal date — adjust as needed
-    const REVEAL_DATE = new Date("2026-02-14T00:00:00");
-    const now = new Date();
-    const isRevealed = now >= REVEAL_DATE;
+    const [isRevealed, setIsRevealed] = useState(false);
 
     const fetchMatches = useCallback(async () => {
         try {
@@ -33,6 +29,11 @@ export default function MatchesPage() {
             } = await supabase.auth.getUser();
 
             if (!user) return;
+
+            // 0. Check Reveal Status (Server Verification)
+            const { data: status } = await supabase.rpc('get_reveal_status');
+            const revealed = status?.is_revealed || false;
+            setIsRevealed(revealed);
 
             // 1. Fetch Mutual Matches (Directly from 'matches' table - O(1) lookup index)
             // We need to check both user1 and user2 columns
