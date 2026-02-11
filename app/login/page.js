@@ -4,32 +4,134 @@ export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Heart, Loader2 } from "lucide-react";
+import {
+    Heart,
+    Loader2,
+    User,
+    Building2,
+    GraduationCap,
+    Instagram,
+    CheckCircle2,
+    ArrowRight
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 const ALLOWED_DOMAIN = "@student.providence.edu.in";
 
+const parseStudentEmail = (email) => {
+    console.log("Parsing email:", email);
+    try {
+        const localPart = email.split("@")[0];
+        const [namePart, studentInfo] = localPart.split(".prc");
+
+        if (!namePart || !studentInfo) {
+            console.error("Invalid email format for parsing");
+            return null;
+        }
+
+        const name = namePart
+            .split(".")
+            .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+            .join(" ");
+
+        const yearCode = studentInfo.substring(0, 2);
+        const deptMatch = studentInfo.substring(2).match(/^[a-zA-Z]+/);
+        const deptCode = deptMatch ? deptMatch[0].toLowerCase() : "";
+
+        const depts = {
+            cs: "Computer Science",
+            ca: "Artificial Intelligence",
+            cy: "Cyber Security",
+            me: "Mechanical Engineering",
+            ec: "Electronics & Communication",
+            ee: "Electrical Engineering",
+            ce: "Civil Engineering",
+            mba: "MBA",
+        };
+
+        const years = {
+            "22": "4th Year",
+            "23": "3rd Year",
+            "24": "2nd Year",
+            "25": "1st Year",
+        };
+
+        let yearText = "";
+        if (deptCode === "mba") {
+            yearText = yearCode === "22" ? "2nd Year" : yearCode === "23" ? "1st Year" : `${yearCode} Batch`;
+        } else {
+            yearText = years[yearCode] || `${yearCode} Batch`;
+        }
+
+        return {
+            full_name: name,
+            department: depts[deptCode] || deptCode.toUpperCase(),
+            year: yearText,
+        };
+    } catch (e) {
+        console.error("Parse error:", e);
+        return null;
+    }
+};
+
 export default function LoginPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
+    const [step, setStep] = useState("auth"); // "auth" | "profile"
+    const [tempProfile, setTempProfile] = useState({
+        id: "",
+        email: "",
+        full_name: "",
+        department: "",
+        year: "",
+        instagram_url: "",
+    });
 
     useEffect(() => {
-        // Listen for auth state changes to validate email domain
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (event === "SIGNED_IN" && session?.user) {
                 const userEmail = session.user.email;
 
-                // Validate email domain
                 if (!userEmail?.endsWith(ALLOWED_DOMAIN)) {
                     setError(`Only ${ALLOWED_DOMAIN} emails are allowed`);
-                    // Sign out the user
                     await supabase.auth.signOut();
                     setLoading(false);
-                } else {
-                    // Email is valid, redirect to dashboard
-                    router.push("/dashboard/profile");
+                    return;
+                }
+
+                // Check if profile exists and is complete
+                try {
+                    const { data: existingUser, error: fetchError } = await supabase
+                        .from("users")
+                        .select("*")
+                        .eq("id", session.user.id)
+                        .single();
+
+                    if (existingUser?.instagram_url) {
+                        // Profile complete, go to dashboard
+                        router.push("/dashboard/home");
+                    } else {
+                        // Profile incomplete or doesn't exist, show completion step
+                        const parsed = parseStudentEmail(userEmail);
+                        setTempProfile({
+                            id: session.user.id,
+                            email: userEmail,
+                            full_name: existingUser?.full_name || parsed?.full_name || "",
+                            department: existingUser?.department || parsed?.department || "",
+                            year: existingUser?.year || parsed?.year || "",
+                            instagram_url: existingUser?.instagram_url || "",
+                        });
+                        setStep("profile");
+                        setLoading(false);
+                    }
+                } catch (err) {
+                    console.error("Auth routing error:", err);
+                    setLoading(false);
                 }
             }
         });
@@ -40,7 +142,6 @@ export default function LoginPage() {
     const handleGoogleSignIn = async () => {
         setError("");
         setLoading(true);
-
         try {
             const { error: authError } = await supabase.auth.signInWithOAuth({
                 provider: "google",
@@ -52,80 +153,162 @@ export default function LoginPage() {
                     },
                 },
             });
-
             if (authError) throw authError;
-
-            // Loading state will be cleared by onAuthStateChange
         } catch (err) {
-            setError(err.message || "Failed to sign in with Google. Try again.");
+            setError(err.message || "Failed to sign in. Try again.");
             setLoading(false);
+        }
+    };
+
+    const handleCompleteProfile = async (e) => {
+        e.preventDefault();
+        setSaving(true);
+        setError("");
+
+        try {
+            let insta = tempProfile.instagram_url.trim();
+            if (insta && !insta.startsWith("http") && !insta.includes("instagram.com")) {
+                insta = `https://instagram.com/${insta.replace("@", "")}`;
+            }
+
+            const { error: upsertError } = await supabase.from("users").upsert({
+                id: tempProfile.id,
+                email: tempProfile.email,
+                full_name: tempProfile.full_name,
+                department: tempProfile.department,
+                year: tempProfile.year,
+                instagram_url: insta,
+            });
+
+            if (upsertError) throw upsertError;
+            router.push("/dashboard/home");
+        } catch (err) {
+            setError(err.message || "Failed to save profile");
+        } finally {
+            setSaving(false);
         }
     };
 
     return (
         <main className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
-            {/* Background blurs */}
             <div className="absolute top-1/3 -left-40 w-80 h-80 bg-pink-500/10 rounded-full blur-3xl" />
             <div className="absolute bottom-1/3 -right-40 w-80 h-80 bg-violet-500/10 rounded-full blur-3xl" />
 
             <div className="glass-card p-10 sm:p-12 w-full max-w-md animate-[slide-up_0.5s_ease-out]">
-                {/* Logo header */}
-                <div className="text-center mb-8">
-                    <Link href="/" className="inline-block">
-                        <div style={{ animation: "heart-beat 1.2s ease-in-out infinite" }} className="mb-3">
-                            <Heart className="w-10 h-10 text-pink-400 fill-pink-400 mx-auto" />
+                {step === "auth" ? (
+                    <>
+                        <div className="text-center mb-8">
+                            <Link href="/" className="inline-block">
+                                <div style={{ animation: "heart-beat 1.2s ease-in-out infinite" }} className="mb-3">
+                                    <Heart className="w-10 h-10 text-pink-400 fill-pink-400 mx-auto" />
+                                </div>
+                            </Link>
+                            <h1 className="text-3xl font-bold gradient-text">Welcome Back</h1>
+                            <p className="text-[var(--color-text-secondary)] text-sm mt-2">
+                                Sign in with your college Google account
+                            </p>
                         </div>
-                    </Link>
-                    <h1 className="text-3xl font-bold gradient-text">Welcome Back</h1>
-                    <p className="text-[var(--color-text-secondary)] text-sm mt-2">
-                        Sign in with your college Google account
-                    </p>
-                </div>
 
-                {/* Error message */}
-                {error && (
-                    <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm text-center">
-                        {error}
-                    </div>
+                        {error && (
+                            <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm text-center">
+                                {error}
+                            </div>
+                        )}
+
+                        <button
+                            onClick={handleGoogleSignIn}
+                            disabled={loading}
+                            className="btn-gradient w-full flex items-center justify-center gap-3 py-3 text-base"
+                        >
+                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                                <>
+                                    <svg className="w-5 h-5" viewBox="0 0 24 24">
+                                        <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                        <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                                        <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                                        <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                                    </svg>
+                                    Sign in with Google
+                                </>
+                            )}
+                        </button>
+                    </>
+                ) : (
+                    <form onSubmit={handleCompleteProfile} className="space-y-6">
+                        <div className="text-center mb-6">
+                            <h2 className="text-2xl font-bold gradient-text">Complete Profile</h2>
+                            <p className="text-[var(--color-text-secondary)] text-sm mt-1">
+                                Enter your Instagram to join the fun!
+                            </p>
+                        </div>
+
+                        {error && (
+                            <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm text-center">
+                                {error}
+                            </div>
+                        )}
+
+                        <div className="space-y-4">
+                            <div className="relative">
+                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--color-text-secondary)] opacity-50" />
+                                <input
+                                    type="text"
+                                    value={tempProfile.full_name}
+                                    readOnly
+                                    placeholder="Full Name"
+                                    className="input-field !pl-12 cursor-not-allowed bg-transparent"
+                                />
+                            </div>
+
+                            <div className="relative">
+                                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--color-text-secondary)] opacity-50" />
+                                <input
+                                    type="text"
+                                    value={tempProfile.department}
+                                    
+                                    placeholder="Department"
+                                    className="input-field !pl-12 cursor-not-allowed bg-transparent"
+                                />
+                            </div>
+
+                            <div className="relative">
+                                <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--color-text-secondary)] opacity-50" />
+                                <input
+                                    type="text"
+                                    value={tempProfile.year}
+                                    
+                                    placeholder="Year"
+                                    className="input-field !pl-12 cursor-not-allowed bg-transparent"
+                                />
+                            </div>
+
+                            <div className="relative">
+                                <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-pink-400" />
+                                <input
+                                    type="text"
+                                    value={tempProfile.instagram_url}
+                                    onChange={(e) => setTempProfile({ ...tempProfile, instagram_url: e.target.value })}
+                                    placeholder="Instagram Username (@...)"
+                                    className="input-field !pl-12 border-pink-500/30 focus:border-pink-500"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="btn-gradient w-full flex items-center justify-center gap-2 py-3"
+                        >
+                            {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                                <>
+                                    <CheckCircle2 className="w-5 h-5" />
+                                    Complete Registration
+                                </>
+                            )}
+                        </button>
+                    </form>
                 )}
-
-                {/* Google Sign In Button */}
-                <button
-                    onClick={handleGoogleSignIn}
-                    disabled={loading}
-                    className="btn-gradient w-full flex items-center justify-center gap-3 py-3 text-base"
-                >
-                    {loading ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                        <>
-                            <svg className="w-5 h-5" viewBox="0 0 24 24">
-                                <path
-                                    fill="currentColor"
-                                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                                />
-                                <path
-                                    fill="currentColor"
-                                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                                />
-                                <path
-                                    fill="currentColor"
-                                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                                />
-                                <path
-                                    fill="currentColor"
-                                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                                />
-                            </svg>
-                            Sign in with Google
-                        </>
-                    )}
-                </button>
-
-                {/* Info text */}
-                <p className="text-xs text-[var(--color-text-secondary)] text-center mt-6 opacity-60">
-                    Only {ALLOWED_DOMAIN} accounts are allowed
-                </p>
             </div>
         </main>
     );
