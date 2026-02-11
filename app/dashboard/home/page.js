@@ -228,7 +228,7 @@ export default function DashboardHome() {
                         <h2 className="font-bold text-lg">💘 Valentine&apos;s Day Reveal</h2>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-3 mb-4">
+                    <div className="grid grid-cols-4 gap-1 mb-4">
                         {[
                             { value: countdown.days, label: "Days" },
                             { value: countdown.hours, label: "Hours" },
@@ -336,7 +336,7 @@ export default function DashboardHome() {
                         {
                             icon: <Clock className="w-6 h-6 text-violet-400" />,
                             title: "Deadline",
-                            desc: "You can change your choices until Feb 14, 1:00 AM.",
+                            desc: "You can change your choices until Feb 14, 12:00 AM.",
                         },
                         {
                             icon: <Shield className="w-6 h-6 text-rose-400" />,
