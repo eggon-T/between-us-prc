@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Heart, User, Search, Sparkles, LogOut, Info, X, Clock, ShieldCheck, HeartHandshake } from "lucide-react";
+import { Heart, User, Search, Sparkles, LogOut, Home as HomeIcon } from "lucide-react";
 import Link from "next/link";
 
 export default function DashboardLayout({ children }) {
@@ -13,7 +13,7 @@ export default function DashboardLayout({ children }) {
     const pathname = usePathname();
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [showRules, setShowRules] = useState(false);
+
 
     useEffect(() => {
         const getUser = async () => {
@@ -51,9 +51,9 @@ export default function DashboardLayout({ children }) {
     };
 
     const navItems = [
+        { href: "/dashboard/home", icon: HomeIcon, label: "Home" },
+        { href: "/dashboard/select", icon: Search, label: "Choose Valentine" },
         { href: "/dashboard/profile", icon: User, label: "Profile" },
-        { href: "/dashboard/select", icon: Search, label: "Select" },
-        { href: "/dashboard/matches", icon: Sparkles, label: "Matches" },
     ];
 
     if (loading) {
@@ -98,14 +98,6 @@ export default function DashboardLayout({ children }) {
                         <div className="h-6 w-px bg-[var(--color-border-subtle)] mx-2" />
 
                         <button
-                            onClick={() => setShowRules(true)}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-[var(--color-text-secondary)] hover:text-violet-400 hover:bg-violet-500/5 transition-all duration-200"
-                        >
-                            <Info className="w-4 h-4" />
-                            <span>Rules</span>
-                        </button>
-
-                        <button
                             onClick={handleLogout}
                             className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-[var(--color-text-secondary)] hover:text-rose-400 hover:bg-rose-500/5 transition-all duration-200"
                         >
@@ -122,34 +114,28 @@ export default function DashboardLayout({ children }) {
             </main>
 
             {/* Mobile Bottom Nav — visible only on mobile */}
-            <nav className="sm:hidden fixed bottom-4 left-4 right-4 z-50 glass-card px-2 py-2"
-                style={{ borderRadius: '1.25rem', boxShadow: '0 -4px 30px rgba(0,0,0,0.4), 0 0 40px rgba(244, 114, 182, 0.08)' }}>
+            <nav className="sm:hidden fixed bottom-4 left-4 right-4 z-50 px-3 py-3 bg-[var(--color-bg-card)] backdrop-blur-xl border-2 border-pink-500/50"
+                style={{
+                    borderRadius: '1.5rem',
+                    boxShadow: '0 -4px 30px rgba(0,0,0,0.5), 0 0 40px rgba(244, 114, 182, 0.12), 0 0 20px rgba(236, 72, 153, 0.6), 0 0 40px rgba(236, 72, 153, 0.4)',
+                    animation: 'glow-pulse 2s ease-in-out infinite'
+                }}>
                 <div className="flex items-center justify-around">
-                    <button
-                        onClick={() => setShowRules(true)}
-                        className="flex flex-col items-center gap-1 flex-1 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] transition-all duration-200"
-                    >
-                        <div className="p-2 rounded-xl">
-                            <Info className="w-5 h-5" />
-                        </div>
-                        <span>Rules</span>
-                    </button>
 
                     {navItems.map((item) => {
                         const isActive = pathname === item.href;
                         return (
                             <Link key={item.href} href={item.href} className="flex-1">
                                 <button
-                                    className={`flex flex-col items-center gap-1 w-full py-2 rounded-xl text-xs font-medium transition-all duration-200
+                                    className={`flex items-center justify-center w-full py-2.5 rounded-xl transition-all duration-200
                                         ${isActive
                                             ? "text-pink-400"
                                             : "text-[var(--color-text-secondary)]"
                                         }`}
                                 >
-                                    <div className={`p-2 rounded-xl transition-all duration-200 ${isActive ? "bg-pink-500/15 shadow-lg shadow-pink-500/10" : ""}`}>
-                                        <item.icon className={`w-5 h-5 ${isActive ? "scale-110" : ""} transition-transform`} />
+                                    <div className={`p-2.5 rounded-xl transition-all duration-200 ${isActive ? "bg-pink-500/15 shadow-lg shadow-pink-500/10" : ""}`}>
+                                        <item.icon className={`w-6 h-6 ${isActive ? "scale-110" : ""} transition-transform`} />
                                     </div>
-                                    <span>{item.label}</span>
                                 </button>
                             </Link>
                         );
@@ -157,78 +143,16 @@ export default function DashboardLayout({ children }) {
 
                     <button
                         onClick={handleLogout}
-                        className="flex flex-col items-center gap-1 flex-1 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] transition-all duration-200"
+                        className="flex items-center justify-center flex-1 py-2.5 rounded-xl text-[var(--color-text-secondary)] transition-all duration-200"
                     >
-                        <div className="p-2 rounded-xl">
-                            <LogOut className="w-5 h-5" />
+                        <div className="p-2.5 rounded-xl">
+                            <LogOut className="w-6 h-6" />
                         </div>
-                        <span>Logout</span>
                     </button>
                 </div>
             </nav>
 
-            {/* Rules Modal */}
-            {showRules && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-[fade-in_0.2s_ease-out]">
-                    <div className="glass-card max-w-md w-full p-6 relative animate-[scale-up_0.3s_ease-out]">
-                        <button
-                            onClick={() => setShowRules(false)}
-                            className="absolute top-4 right-4 p-2 rounded-full hover:bg-[var(--color-bg-card-hover)] transition-colors"
-                        >
-                            <X className="w-5 h-5 text-[var(--color-text-secondary)]" />
-                        </button>
 
-                        <div className="text-center mb-6">
-                            <h2 className="text-2xl font-bold gradient-text">How It Works</h2>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div className="flex gap-4 p-4 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)]">
-                                <div className="p-2 h-fit rounded-full bg-pink-500/10 text-pink-400">
-                                    <HeartHandshake className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-[var(--color-text-primary)]">Select up to 5</h3>
-                                    <p className="text-sm text-[var(--color-text-secondary)] mt-1">
-                                        Choose up to 5 people you like. It&apos;s completely anonymous unless you match!
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="flex gap-4 p-4 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)]">
-                                <div className="p-2 h-fit rounded-full bg-violet-500/10 text-violet-400">
-                                    <Clock className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-[var(--color-text-primary)]">Deadline</h3>
-                                    <p className="text-sm text-[var(--color-text-secondary)] mt-1">
-                                        You can change your choices until <span className="font-bold text-[var(--color-text-primary)]">Feb 14, 1:00 AM</span>.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="flex gap-4 p-4 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)]">
-                                <div className="p-2 h-fit rounded-full bg-rose-500/10 text-rose-400">
-                                    <ShieldCheck className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-[var(--color-text-primary)]">Privacy First</h3>
-                                    <p className="text-sm text-[var(--color-text-secondary)] mt-1">
-                                        Your selections are secret. Matches are revealed only if they like you back!
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <button
-                            onClick={() => setShowRules(false)}
-                            className="w-full mt-6 btn-gradient py-3 font-medium"
-                        >
-                            Got it! 💘
-                        </button>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

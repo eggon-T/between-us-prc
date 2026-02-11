@@ -204,7 +204,7 @@ export default function ProfilePage() {
                 {/* Instagram URL */}
                 <div>
                     <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">
-                        Instagram Username or URL <span className="opacity-50">(optional)</span>
+                        Instagram Username or URL <span className="text-pink-400">*</span>
                     </label>
                     <div className="relative">
                         <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--color-text-secondary)] opacity-50" />
@@ -215,6 +215,7 @@ export default function ProfilePage() {
                             onChange={(e) => setProfile({ ...profile, instagram_url: e.target.value })}
                             placeholder="@username or https://instagram.com/..."
                             className="input-field !pl-14"
+                            required
                         />
                     </div>
                 </div>

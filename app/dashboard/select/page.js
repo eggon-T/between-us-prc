@@ -14,6 +14,9 @@ import {
     CheckCircle2,
     Building2,
     GraduationCap,
+    X,
+    Send,
+    Instagram,
 } from "lucide-react";
 
 const MAX_SELECTIONS = 5;
@@ -26,6 +29,9 @@ export default function SelectPage() {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(null);
     const [message, setMessage] = useState({ type: "", text: "" });
+    const [selectedProfile, setSelectedProfile] = useState(null);
+    const [hintText, setHintText] = useState("");
+    const [sendingHint, setSendingHint] = useState(false);
 
     const fetchData = useCallback(async () => {
         try {
@@ -113,6 +119,35 @@ export default function SelectPage() {
             setActionLoading(null);
             setTimeout(() => setMessage({ type: "", text: "" }), 2000);
         }
+    };
+
+    const handleSendHint = async () => {
+        if (!hintText.trim() || !selectedProfile) return;
+
+        setSendingHint(true);
+        try {
+            const { error } = await supabase.rpc("send_anonymous_hint", {
+                target_id: selectedProfile.id,
+                hint_message: hintText.trim()
+            });
+
+            if (error) throw error;
+
+            setMessage({ type: "success", text: "Hint sent! 💌" });
+            setHintText("");
+            setSelectedProfile(null);
+        } catch (err) {
+            console.error("Error sending hint:", err);
+            setMessage({ type: "error", text: err.message || "Failed to send hint" });
+        } finally {
+            setSendingHint(false);
+            setTimeout(() => setMessage({ type: "", text: "" }), 3000);
+        }
+    };
+
+    const closeModal = () => {
+        setSelectedProfile(null);
+        setHintText("");
     };
 
     const filteredUsers = users.filter(
@@ -203,8 +238,9 @@ export default function SelectPage() {
                         return (
                             <div
                                 key={person.id}
-                                className={`glass-card p-5 flex items-center justify-between transition-all duration-300 hover:bg-[var(--color-bg-card-hover)] ${isSelected ? "border-pink-500/30 shadow-lg shadow-pink-500/5" : ""
+                                className={`glass-card p-5 flex items-center justify-between transition-all duration-300 hover:bg-[var(--color-bg-card-hover)] cursor-pointer ${isSelected ? "border-pink-500/30 shadow-lg shadow-pink-500/5" : ""
                                     }`}
+                                onClick={() => setSelectedProfile(person)}
                             >
                                 <div className="flex items-center gap-4">
                                     {/* Avatar */}
@@ -245,7 +281,10 @@ export default function SelectPage() {
 
                                 {/* Action button */}
                                 <button
-                                    onClick={() => (isSelected ? handleDeselect(person.id) : handleSelect(person.id))}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        isSelected ? handleDeselect(person.id) : handleSelect(person.id);
+                                    }}
                                     disabled={isLoading || (!isSelected && selections.length >= MAX_SELECTIONS)}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200
                     ${isSelected
@@ -273,6 +312,121 @@ export default function SelectPage() {
                     })
                 )}
             </div>
+
+            {/* Profile Modal */}
+            {selectedProfile && (
+                <div
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-[fade-in_0.2s_ease-out]"
+                    onClick={closeModal}
+                >
+                    <div
+                        className="glass-card max-w-md w-full p-6 relative animate-[scale-up_0.3s_ease-out]"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            onClick={closeModal}
+                            className="absolute top-4 right-4 p-2 rounded-full hover:bg-[var(--color-bg-card-hover)] transition-colors"
+                        >
+                            <X className="w-5 h-5 text-[var(--color-text-secondary)]" />
+                        </button>
+
+                        {/* Profile Header */}
+                        <div className="text-center mb-6">
+                            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-pink-500/20 to-violet-500/20 border-2 border-pink-400/30 flex items-center justify-center mx-auto mb-4 font-bold text-3xl text-pink-400">
+                                {selectedProfile.full_name ? selectedProfile.full_name.charAt(0).toUpperCase() : <User className="w-10 h-10" />}
+                            </div>
+                            <h2 className="text-2xl font-bold mb-2">{selectedProfile.full_name}</h2>
+                            <div className="flex items-center justify-center gap-4 text-sm text-[var(--color-text-secondary)]">
+                                {selectedProfile.department && (
+                                    <span className="flex items-center gap-1">
+                                        <Building2 className="w-4 h-4" />
+                                        {selectedProfile.department}
+                                    </span>
+                                )}
+                                {selectedProfile.year && (
+                                    <span className="flex items-center gap-1">
+                                        <GraduationCap className="w-4 h-4" />
+                                        {selectedProfile.year}
+                                    </span>
+                                )}
+                            </div>
+                            {selectedProfile.instagram_url && (
+                                <a
+                                    href={selectedProfile.instagram_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="mt-4 btn-gradient w-full py-2.5 text-sm flex items-center justify-center gap-2"
+                                >
+                                    <Instagram className="w-4 h-4" />
+                                    Visit Instagram Profile
+                                </a>
+                            )}
+                        </div>
+
+                        {/* Send Anonymous Hint Section */}
+                        {selections.includes(selectedProfile.id) && (
+                            <div className="border-t border-[var(--color-border-subtle)] pt-6">
+                                <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
+                                    <Send className="w-4 h-4 text-violet-400" />
+                                    Send Anonymous Hint (Optional)
+                                </h3>
+                                <p className="text-xs text-[var(--color-text-secondary)] mb-3">
+                                    Send a sweet message! They&apos;ll see it but won&apos;t know it&apos;s from you. 💌
+                                </p>
+                                <textarea
+                                    value={hintText}
+                                    onChange={(e) => setHintText(e.target.value)}
+                                    placeholder="e.g., I love your smile..."
+                                    maxLength={200}
+                                    rows={3}
+                                    className="input-field w-full resize-none mb-2"
+                                />
+                                <div className="flex items-center justify-between mb-3">
+                                    <span className="text-xs text-[var(--color-text-secondary)]">
+                                        {hintText.length}/200
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={handleSendHint}
+                                    disabled={!hintText.trim() || sendingHint}
+                                    className="btn-gradient w-full py-2.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {sendingHint ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Sending...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Send className="w-4 h-4" />
+                                            Send Hint
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        )}
+
+                        {!selections.includes(selectedProfile.id) && (
+                            <div className="border-t border-[var(--color-border-subtle)] pt-6">
+                                <p className="text-sm text-[var(--color-text-secondary)] text-center mb-4">
+                                    Select this person to send them an anonymous hint! 💘
+                                </p>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSelect(selectedProfile.id);
+                                    }}
+                                    disabled={selections.length >= MAX_SELECTIONS}
+                                    className="btn-gradient w-full py-2.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    <Heart className="w-4 h-4" />
+                                    Select as Valentine
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
