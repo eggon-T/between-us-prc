@@ -100,6 +100,8 @@ export default function DashboardHome() {
 
             if (diff <= 0) {
                 setCountdown({ days: 0, hours: 0, mins: 0, secs: 0 });
+                // Auto-refresh data when countdown ends
+                fetchData();
                 return;
             }
 
