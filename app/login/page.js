@@ -16,8 +16,10 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-const ALLOWED_DOMAIN = "@student.providence.edu.in";
-
+const ALLOWED_DOMAINS = [
+  "@student.providence.edu.in",
+  "@psb.providence.edu.in",
+];
 const parseStudentEmail = (email) => {
     console.log("Parsing email:", email);
     try {
@@ -117,12 +119,18 @@ export default function LoginPage() {
 
             const userEmail = session.user.email;
 
-            if (!userEmail?.endsWith(ALLOWED_DOMAIN)) {
-                setError(`Only ${ALLOWED_DOMAIN} emails are allowed`);
-                await supabase.auth.signOut();
-                setLoading(false);
-                return;
-            }
+            if (
+  !ALLOWED_DOMAINS.some((domain) =>
+    userEmail?.toLowerCase().endsWith(domain)
+  )
+) {
+  setError(
+    `Only ${ALLOWED_DOMAINS.join(" or ")} emails are allowed`
+  );
+  await supabase.auth.signOut();
+  setLoading(false);
+  return;
+}
 
             try {
                 const { data: existingUser } = await supabase
@@ -283,7 +291,7 @@ export default function LoginPage() {
                         </button>
 
                         <p className="text-xs text-[var(--color-text-secondary)] text-center mt-6 opacity-60">
-                            Only {ALLOWED_DOMAIN} accounts are allowed
+                            Only {ALLOWED_DOMAINS.join(" or ")} accounts are allowed
                         </p>
                     </>
                 ) : (
