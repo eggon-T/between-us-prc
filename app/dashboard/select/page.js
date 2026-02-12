@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { openInstagramProfile, getInstagramUrl } from "@/lib/instagram";
 import {
   Search,
   Heart,
@@ -53,26 +54,26 @@ export default function SelectPage() {
 
       const userGender = profile?.gender;
 
-let query = supabase
-  .from("users")
-  .select("*")
-  .neq("id", user.id)
-  .order("full_name");
+      let query = supabase
+        .from("users")
+        .select("*")
+        .neq("id", user.id)
+        .order("full_name");
 
-if (userGender === "Male") {
-  query = query.eq("gender", "Female");
-} else if (userGender === "Female") {
-  query = query.eq("gender", "Male");
-} else if (userGender === "Other") {
-  query = query.in("gender", ["Male", "Female"]); // show both
-} else {
-  // invalid / null gender → show nobody
-  setUsers([]);
-  setLoading(false);
-  return;
-}
+      if (userGender === "Male") {
+        query = query.eq("gender", "Female");
+      } else if (userGender === "Female") {
+        query = query.eq("gender", "Male");
+      } else if (userGender === "Other") {
+        query = query.in("gender", ["Male", "Female"]); // show both
+      } else {
+        // invalid / null gender → show nobody
+        setUsers([]);
+        setLoading(false);
+        return;
+      }
 
-const { data: allUsers, error: usersError } = await query;
+      const { data: allUsers, error: usersError } = await query;
       if (usersError) throw usersError;
       setUsers(allUsers || []);
 
@@ -221,11 +222,10 @@ const { data: allUsers, error: usersError } = await query;
             {Array.from({ length: MAX_SELECTIONS }).map((_, i) => (
               <Heart
                 key={i}
-                className={`w-5 h-5 transition-all duration-300 ${
-                  i < selections.length
+                className={`w-5 h-5 transition-all duration-300 ${i < selections.length
                     ? "text-pink-400 fill-pink-400 scale-110"
                     : "text-[var(--color-text-secondary)] opacity-20"
-                }`}
+                  }`}
               />
             ))}
           </div>
@@ -238,13 +238,12 @@ const { data: allUsers, error: usersError } = await query;
       {/* Messages */}
       {message.text && (
         <div
-          className={`mb-4 p-3 rounded-xl text-sm text-center animate-[slide-up_0.3s_ease-out] ${
-            message.type === "error"
+          className={`mb-4 p-3 rounded-xl text-sm text-center animate-[slide-up_0.3s_ease-out] ${message.type === "error"
               ? "bg-rose-500/10 border border-rose-500/20 text-rose-300"
               : message.type === "success"
                 ? "bg-green-500/10 border border-green-500/20 text-green-300"
                 : "bg-blue-500/10 border border-blue-500/20 text-blue-300"
-          }`}
+            }`}
         >
           {message.text}
         </div>
@@ -282,22 +281,20 @@ const { data: allUsers, error: usersError } = await query;
             return (
               <div
                 key={person.id}
-                className={`glass-card p-5 flex items-center justify-between transition-all duration-300 hover:bg-[var(--color-bg-card-hover)] cursor-pointer ${
-                  isSelected
+                className={`glass-card p-5 flex items-center justify-between transition-all duration-300 hover:bg-[var(--color-bg-card-hover)] cursor-pointer ${isSelected
                     ? "border-pink-500/30 shadow-lg shadow-pink-500/5"
                     : ""
-                }`}
+                  }`}
                 onClick={() => setSelectedProfile(person)}
               >
                 <div className="flex items-center gap-4">
                   {/* Avatar */}
                   <div
                     className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all font-bold text-lg
-                    ${
-                      isSelected
+                    ${isSelected
                         ? "border-pink-400 bg-pink-500/10 text-pink-400"
                         : "border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] text-[var(--color-text-secondary)]"
-                    }`}
+                      }`}
                   >
                     {person.full_name ? (
                       person.full_name.charAt(0).toUpperCase()
@@ -327,7 +324,7 @@ const { data: allUsers, error: usersError } = await query;
                           {person.year}
                         </span>
                       )}
-                      
+
                     </div>
                   </div>
                 </div>
@@ -345,10 +342,9 @@ const { data: allUsers, error: usersError } = await query;
                     (!isSelected && selections.length >= MAX_SELECTIONS)
                   }
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200
-                    ${
-                      isSelected
-                        ? "bg-pink-500/15 text-pink-400 hover:bg-rose-500/20 hover:text-rose-400"
-                        : "bg-pink-500/5 text-[var(--color-text-secondary)] hover:bg-pink-500/15 hover:text-pink-400"
+                    ${isSelected
+                      ? "bg-pink-500/15 text-pink-400 hover:bg-rose-500/20 hover:text-rose-400"
+                      : "bg-pink-500/5 text-[var(--color-text-secondary)] hover:bg-pink-500/15 hover:text-pink-400"
                     }
                     disabled:opacity-30 disabled:cursor-not-allowed`}
                 >
@@ -423,7 +419,11 @@ const { data: allUsers, error: usersError } = await query;
               </div>
               {selectedProfile.instagram_url && (
                 <a
-                  href={selectedProfile.instagram_url}
+                  href={getInstagramUrl(selectedProfile.instagram_url)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    openInstagramProfile(selectedProfile.instagram_url);
+                  }}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-4 btn-gradient w-full py-2.5 text-sm flex items-center justify-center gap-2"

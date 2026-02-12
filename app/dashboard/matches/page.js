@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { openInstagramProfile, getInstagramUrl } from "@/lib/instagram";
 import {
     Heart,
     Sparkles,
@@ -215,7 +216,11 @@ export default function MatchesPage() {
                                 </div>
                                 {match.instagram_url && (
                                     <a
-                                        href={match.instagram_url}
+                                        href={getInstagramUrl(match.instagram_url)}
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            openInstagramProfile(match.instagram_url);
+                                        }}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="w-10 h-10 rounded-full bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] flex items-center justify-center hover:border-pink-500 hover:text-pink-500 transition-colors"

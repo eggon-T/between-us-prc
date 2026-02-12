@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { openInstagramProfile, getInstagramUrl } from "@/lib/instagram";
 import {
     Heart,
     Clock,
@@ -208,7 +209,11 @@ export default function DashboardHome() {
                                     </div>
                                     {match.instagram_url && (
                                         <a
-                                            href={match.instagram_url}
+                                            href={getInstagramUrl(match.instagram_url)}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                openInstagramProfile(match.instagram_url);
+                                            }}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-pink-500/20 transition-colors"
@@ -391,7 +396,11 @@ export default function DashboardHome() {
 
                             {selectedMatch.instagram_url && (
                                 <a
-                                    href={selectedMatch.instagram_url}
+                                    href={getInstagramUrl(selectedMatch.instagram_url)}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        openInstagramProfile(selectedMatch.instagram_url);
+                                    }}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="btn-gradient w-full py-3 text-sm flex items-center justify-center gap-2"
