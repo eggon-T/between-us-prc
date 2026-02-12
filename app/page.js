@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Heart, Sparkles, ArrowRight, Shield, Users, Eye } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation"; // Added useRouter
-import { supabase } from "@/lib/supabase"; // Added supabase import
+import { useSearchParams, useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 function FloatingParticle({ delay, x, size }) {
     return (
@@ -23,10 +23,10 @@ function FloatingParticle({ delay, x, size }) {
     );
 }
 
-export default function HomePage() {
+function HomeContent() {
     const [mounted, setMounted] = useState(false);
     const searchParams = useSearchParams();
-    const router = useRouter(); // Initialize router
+    const router = useRouter();
     const error = searchParams.get("error");
     const errorDescription = searchParams.get("error_description");
 
@@ -144,5 +144,17 @@ export default function HomePage() {
                 Made with 💗 for your campus
             </footer>
         </main>
+    );
+}
+
+export default function HomePage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center">
+                <Heart className="w-12 h-12 text-pink-400 animate-pulse fill-pink-400" />
+            </div>
+        }>
+            <HomeContent />
+        </Suspense>
     );
 }
