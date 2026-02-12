@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { isProfileComplete } from "@/lib/profile";
 import { Heart, User, Search, Sparkles, LogOut, Home as HomeIcon } from "lucide-react";
 import Link from "next/link";
 
@@ -13,6 +14,7 @@ export default function DashboardLayout({ children }) {
     const pathname = usePathname();
     const [user, setUser] = useState(null);
     const [revealStatus, setRevealStatus] = useState(null);
+    const [profileComplete, setProfileComplete] = useState(false);
     const [loading, setLoading] = useState(true);
 
 
@@ -28,6 +30,22 @@ export default function DashboardLayout({ children }) {
             }
 
             setUser(session.user);
+
+            // Check profile completion
+            const { data: profileData } = await supabase
+                .from("users")
+                .select("*")
+                .eq("id", session.user.id)
+                .single();
+
+            const complete = isProfileComplete(profileData);
+            setProfileComplete(complete);
+
+            // Redirect to profile page if incomplete (unless already there)
+            if (!complete && pathname !== '/dashboard/profile') {
+                router.push('/dashboard/profile');
+                return;
+            }
 
             // Sync reveal status
             const { data: status } = await supabase.rpc('get_reveal_status');
@@ -49,7 +67,7 @@ export default function DashboardLayout({ children }) {
         });
 
         return () => subscription.unsubscribe();
-    }, [router]);
+    }, [router, pathname]);
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -85,13 +103,17 @@ export default function DashboardLayout({ children }) {
                     <div className="flex items-center gap-2">
                         {navItems.map((item) => {
                             const isActive = pathname === item.href;
+                            const isDisabled = !profileComplete && item.href !== '/dashboard/profile';
                             return (
-                                <Link key={item.href} href={item.href}>
+                                <Link key={item.href} href={item.href} className={isDisabled ? 'pointer-events-none' : ''}>
                                     <button
+                                        disabled={isDisabled}
                                         className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-200
                                             ${isActive
                                                 ? "bg-pink-500/15 text-pink-400 shadow-lg shadow-pink-500/10"
-                                                : "text-[var(--color-text-secondary)] hover:text-pink-400 hover:bg-pink-500/5"
+                                                : isDisabled
+                                                    ? "text-[var(--color-text-secondary)] opacity-30 cursor-not-allowed"
+                                                    : "text-[var(--color-text-secondary)] hover:text-pink-400 hover:bg-pink-500/5"
                                             }`}
                                     >
                                         <item.icon className="w-4 h-4" />
@@ -130,13 +152,17 @@ export default function DashboardLayout({ children }) {
 
                     {navItems.map((item) => {
                         const isActive = pathname === item.href;
+                        const isDisabled = !profileComplete && item.href !== '/dashboard/profile';
                         return (
-                            <Link key={item.href} href={item.href} className="flex-1">
+                            <Link key={item.href} href={item.href} className={`flex-1 ${isDisabled ? 'pointer-events-none' : ''}`}>
                                 <button
+                                    disabled={isDisabled}
                                     className={`flex items-center justify-center w-full py-2 rounded-xl transition-all duration-200
                                         ${isActive
                                             ? "text-pink-400"
-                                            : "text-[var(--color-text-secondary)]"
+                                            : isDisabled
+                                                ? "text-[var(--color-text-secondary)] opacity-30"
+                                                : "text-[var(--color-text-secondary)]"
                                         }`}
                                 >
                                     <div className={`p-2 rounded-xl transition-all duration-200 ${isActive ? "bg-pink-500/15 shadow-lg shadow-pink-500/10" : ""}`}>
