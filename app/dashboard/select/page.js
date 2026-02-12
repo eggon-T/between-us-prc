@@ -52,26 +52,27 @@ export default function SelectPage() {
         .single();
 
       const userGender = profile?.gender;
-      const targetGender =
-        userGender === "Male"
-          ? "Female"
-          : userGender === "Female"
-            ? "Male"
-            : null;
 
-      // Get users of the opposite gender
-      let query = supabase
-        .from("users")
-        .select("*")
-        .neq("id", user.id)
-        .order("full_name");
+let query = supabase
+  .from("users")
+  .select("*")
+  .neq("id", user.id)
+  .order("full_name");
 
-      if (targetGender) {
-        query = query.eq("gender", targetGender);
-      }
+if (userGender === "Male") {
+  query = query.eq("gender", "Female");
+} else if (userGender === "Female") {
+  query = query.eq("gender", "Male");
+} else if (userGender === "Other") {
+  query = query.in("gender", ["Male", "Female"]); // show both
+} else {
+  // invalid / null gender → show nobody
+  setUsers([]);
+  setLoading(false);
+  return;
+}
 
-      const { data: allUsers, error: usersError } = await query;
-
+const { data: allUsers, error: usersError } = await query;
       if (usersError) throw usersError;
       setUsers(allUsers || []);
 
