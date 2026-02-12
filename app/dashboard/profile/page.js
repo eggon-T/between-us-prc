@@ -18,10 +18,23 @@ export default function ProfilePage() {
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [error, setError] = useState("");
+    const [isEditing, setIsEditing] = useState(false);
 
     useEffect(() => {
         fetchProfile();
     }, []);
+
+    // Check if specific field is null or undefined (for individual field editing)
+    const isFieldNull = (fieldName) => {
+        return profile[fieldName] === null || profile[fieldName] === undefined;
+    };
+
+    // Check if any editable field is null or undefined
+    const hasNullEditableFields = () => {
+        return isFieldNull('year') ||
+            isFieldNull('department') ||
+            isFieldNull('gender');
+    };
 
     const fetchProfile = async () => {
         try {
@@ -44,11 +57,17 @@ export default function ProfilePage() {
             if (data) {
                 setProfile({
                     full_name: data.full_name || "",
-                    department: data.department || "",
-                    year: data.year || "",
+                    department: data.department,
+                    year: data.year,
                     instagram_url: data.instagram_url || "",
-                    gender: data.gender || "",
+                    gender: data.gender,
                 });
+
+                // Enable editing mode if any editable field is null
+                const hasNullFields = data.department === null || data.department === undefined ||
+                    data.year === null || data.year === undefined ||
+                    data.gender === null || data.gender === undefined;
+                setIsEditing(hasNullFields);
             }
         } catch (err) {
             setError("Failed to load profile");
@@ -90,7 +109,10 @@ export default function ProfilePage() {
 
             setProfile((prev) => ({ ...prev, instagram_url: insta }));
             setSaved(true);
+            setIsEditing(false); // Exit editing mode after successful save
             setTimeout(() => setSaved(false), 3000);
+            // Refresh to update read-only state
+            await fetchProfile();
         } catch (err) {
             setError(err.message || "Failed to save profile");
         } finally {
@@ -128,7 +150,7 @@ export default function ProfilePage() {
                 </div>
             )}
 
-            <form className="glass-card p-8 space-y-6 opacity-80">
+            <form onSubmit={handleSave} className="glass-card p-8 space-y-6 opacity-80">
                 <div className="flex justify-center mb-6">
                     <div className="w-24 h-24 rounded-full bg-gradient-to-br from-pink-500/20 to-violet-500/20 border-2 border-[var(--color-border-subtle)] flex items-center justify-center text-3xl font-bold text-pink-400">
                         {profile.full_name ? (
@@ -150,6 +172,7 @@ export default function ProfilePage() {
                             value={profile.full_name}
                             readOnly
                             className="input-field !pl-14 cursor-not-allowed bg-transparent"
+                            required
                         />
                     </div>
                 </div>
@@ -160,12 +183,33 @@ export default function ProfilePage() {
                     </label>
                     <div className="relative">
                         <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--color-text-secondary)] opacity-50" />
-                        <input
-                            type="text"
-                            value={profile.department}
-                            readOnly
-                            className="input-field !pl-14 cursor-not-allowed bg-transparent"
-                        />
+                        {isFieldNull('department') ? (
+                            <select
+                                value={profile.department || ""}
+                                onChange={(e) => setProfile({ ...profile, department: e.target.value })}
+                                className="input-field !pl-14 border-pink-500/30 focus:border-pink-500"
+                                required
+                            >
+                                <option value="">Select Department</option>
+                                <option value="Computer Science">Computer Science</option>
+                                <option value="Artificial Intelligence">Artificial Intelligence</option>
+                                <option value="Cyber Security">Cyber Security</option>
+                                <option value="BBA">BBA</option>
+                                <option value="Mechanical Engineering">Mechanical Engineering</option>
+                                <option value="Electronics & Communication">Electronics & Communication</option>
+                                <option value="Electrical Engineering">Electrical Engineering</option>
+                                <option value="Civil Engineering">Civil Engineering</option>
+                                <option value="MBA">MBA</option>
+                            </select>
+                        ) : (
+                            <input
+                                type="text"
+                                value={profile.department}
+                                readOnly
+                                className="input-field !pl-14 cursor-not-allowed bg-transparent"
+                                required
+                            />
+                        )}
                     </div>
                 </div>
 
@@ -175,12 +219,28 @@ export default function ProfilePage() {
                     </label>
                     <div className="relative">
                         <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--color-text-secondary)] opacity-50" />
-                        <input
-                            type="text"
-                            value={profile.year}
-                            readOnly
-                            className="input-field !pl-14 cursor-not-allowed bg-transparent"
-                        />
+                        {isFieldNull('year') ? (
+                            <select
+                                value={profile.year || ""}
+                                onChange={(e) => setProfile({ ...profile, year: e.target.value })}
+                                className="input-field !pl-14 border-pink-500/30 focus:border-pink-500"
+                                required
+                            >
+                                <option value="">Select Year</option>
+                                <option value="1st Year">1st Year</option>
+                                <option value="2nd Year">2nd Year</option>
+                                <option value="3rd Year">3rd Year</option>
+                                <option value="4th Year">4th Year</option>
+                            </select>
+                        ) : (
+                            <input
+                                type="text"
+                                value={profile.year}
+                                readOnly
+                                className="input-field !pl-14 cursor-not-allowed bg-transparent"
+                                required
+                            />
+                        )}
                     </div>
                 </div>
 
@@ -194,7 +254,9 @@ export default function ProfilePage() {
                             type="text"
                             value={profile.instagram_url}
                             readOnly
+                            placeholder="Instagram Username (@...)"
                             className="input-field !pl-14 cursor-not-allowed bg-transparent"
+                            required
                         />
                     </div>
                 </div>
@@ -203,26 +265,87 @@ export default function ProfilePage() {
                     <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">
                         Gender
                     </label>
-                    <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--color-text-secondary)] opacity-50" />
-                        <input
-                            type="text"
-                            value={profile.gender || "Not specified"}
-                            readOnly
-                            className="input-field !pl-14 cursor-not-allowed bg-transparent"
-                        />
-                    </div>
+                    {isFieldNull('gender') ? (
+                        <div className="flex gap-4">
+                            <label className="flex-1 cursor-pointer" htmlFor="gender-male">
+                                <input
+                                    type="radio"
+                                    id="gender-male"
+                                    name="gender"
+                                    value="Male"
+                                    checked={profile.gender === "Male"}
+                                    onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
+                                    className="hidden"
+                                    required
+                                />
+                                <div className={`flex items-center justify-center p-3 rounded-xl border transition-all ${profile.gender === "Male"
+                                    ? "border-pink-500 bg-pink-500/10 text-pink-400"
+                                    : "border-[var(--color-border-subtle)] bg-pink-500/5 text-[var(--color-text-secondary)]"
+                                    }`}>
+                                    Male
+                                </div>
+                            </label>
+                            <label className="flex-1 cursor-pointer" htmlFor="gender-female">
+                                <input
+                                    type="radio"
+                                    id="gender-female"
+                                    name="gender"
+                                    value="Female"
+                                    checked={profile.gender === "Female"}
+                                    onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
+                                    className="hidden"
+                                    required
+                                />
+                                <div className={`flex items-center justify-center p-3 rounded-xl border transition-all ${profile.gender === "Female"
+                                    ? "border-pink-500 bg-pink-500/10 text-pink-400"
+                                    : "border-[var(--color-border-subtle)] bg-pink-500/5 text-[var(--color-text-secondary)]"
+                                    }`}>
+                                    Female
+                                </div>
+                            </label>
+                        </div>
+                    ) : (
+                        <div className="relative">
+                            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--color-text-secondary)] opacity-50" />
+                            <input
+                                type="text"
+                                value={profile.gender || "Not specified"}
+                                readOnly
+                                className="input-field !pl-14 cursor-not-allowed bg-transparent"
+                            />
+                        </div>
+                    )}
                 </div>
 
-                <div className="pt-4 border-t border-[var(--color-border-subtle)]">
-                    <div className="flex items-center justify-center gap-2 text-green-400 font-medium">
-                        <CheckCircle2 className="w-5 h-5" />
-                        System Verified Profile
+                {isEditing ? (
+                    <button
+                        type="submit"
+                        disabled={saving}
+                        className="btn-gradient w-full flex items-center justify-center gap-2 py-3"
+                    >
+                        {saving ? (
+                            <>
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                                Saving...
+                            </>
+                        ) : (
+                            <>
+                                <Save className="w-5 h-5" />
+                                Save Profile
+                            </>
+                        )}
+                    </button>
+                ) : (
+                    <div className="pt-4 border-t border-[var(--color-border-subtle)]">
+                        <div className="flex items-center justify-center gap-2 text-green-400 font-medium">
+                            <CheckCircle2 className="w-5 h-5" />
+                            Profile Complete
+                        </div>
+                        <p className="text-center text-[var(--color-text-secondary)] text-xs mt-2">
+                            Your profile is complete and verified. All fields are locked.
+                        </p>
                     </div>
-                    <p className="text-center text-[var(--color-text-secondary)] text-xs mt-2">
-                        Profile details are automatically extracted from your college email and cannot be changed.
-                    </p>
-                </div>
+                )}
             </form>
         </div>
     );
